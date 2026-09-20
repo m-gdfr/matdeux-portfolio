@@ -270,6 +270,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .btn--ghost:hover { background: rgba(23, 22, 19, 0.06); }
 .btn--quiet { background: transparent; border-color: transparent; color: var(--muted); }
 .btn--quiet:hover { color: var(--suie); text-decoration: underline; }
+.btn--armed { color: var(--ember-ink); border-color: var(--ember-ink); }
 
 .errs { margin: 0 0 24px; padding: 16px 20px; background: var(--butter); border-radius: var(--r-input); }
 .errs ul { margin: 8px 0 0; padding-left: 20px; }
@@ -332,7 +333,9 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     docs: { 'projets': [], 'parcours': [], 'page-projet': [] },
     sel: null,
     draft: null,
+    drafts: {},
     dirty: false,
+    armed: false,
     db: null,
     ready: false,
     writable: true
@@ -450,11 +453,13 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
         : col === 'parcours' ? (d.role || '') + (d.dates ? ' · ' + d.dates : '')
         : (d.chapo || '').slice(0, 60);
       var errs = validate(col, d, d.__id);
+      var enCours = !!state.drafts[key(col, d.__id)] || (state.sel === d.__id && state.dirty);
       return '<button class="entry" type="button" data-id="' + esc(d.__id) + '" aria-current="' + (state.sel === d.__id ? 'true' : 'false') + '">'
         + '<span class="entry__dot" aria-hidden="true"></span>'
         + '<span><span class="entry__name">' + esc(d.nom || d.id || 'Sans nom') + '</span>'
         + '<span class="entry__meta">' + esc(meta) + '</span>'
-        + (errs.length ? '<span class="entry__flag">' + errs.length + ' champ' + (errs.length > 1 ? 's' : '') + ' à finir</span>' : '')
+        + (enCours ? '<span class="entry__flag">Modifications non enregistrées</span>'
+          : errs.length ? '<span class="entry__flag">' + errs.length + ' champ' + (errs.length > 1 ? 's' : '') + ' à finir</span>' : '')
         + '</span></button>';
     }).join('');
     if (!items.length) html = '<p class="empty">Aucune entrée pour l\'instant.</p>';
@@ -589,7 +594,9 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       + '<div class="actions">'
       + '<button class="btn btn--primary" type="button" id="save"' + (state.writable ? '' : ' disabled') + '>Enregistrer</button>'
       + '<button class="btn btn--ghost" type="button" id="revert">Annuler les modifications</button>'
-      + '<button class="btn btn--quiet" type="button" id="del">Supprimer cette entrée</button>'
+      + '<button class="btn btn--quiet' + (state.armed ? ' btn--armed' : '') + '" type="button" id="del">'
+      + (state.armed ? 'Confirmer la suppression' : 'Supprimer cette entrée') + '</button>'
+      + (state.armed ? '<span class="card__hint">Elle disparaît pour tout le monde.</span>' : '')
       + '</div></div>';
   }
 
@@ -600,6 +607,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
      --------------------------------------------------------------- */
   function touch() {
     state.dirty = true;
+    if (state.armed) { state.armed = false; renderEditor(); }
     var hint = document.querySelector('.card__hint');
     if (hint) hint.textContent = 'Modifications non enregistrées';
   }
@@ -667,26 +675,32 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   /* ---------------------------------------------------------------
      Clics
      --------------------------------------------------------------- */
-  function leaveGuard() {
-    if (!state.dirty) return true;
-    return window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?');
+  function key(col, id) { return col + '/' + id; }
+
+  function stash() {
+    if (state.sel && state.draft && state.dirty) {
+      state.drafts[key(state.col, state.sel)] = JSON.parse(JSON.stringify(state.draft));
+    }
   }
 
   function select(id) {
-    if (!leaveGuard()) return;
+    stash();
+    state.armed = false;
+    var kept = state.drafts[key(state.col, id)];
     var d = state.docs[state.col].filter(function (x) { return x.__id === id; })[0];
-    if (!d) return;
+    if (!d && !kept) return;
     state.sel = id;
-    state.draft = JSON.parse(JSON.stringify(d));
+    state.draft = kept ? kept : JSON.parse(JSON.stringify(d));
     state.draft.__idTouched = true;
-    state.dirty = false;
+    state.dirty = !!kept;
     render();
   }
 
   document.addEventListener('click', function (e) {
     var tab = e.target.closest ? e.target.closest('.tab') : null;
     if (tab) {
-      if (!leaveGuard()) return;
+      stash();
+      state.armed = false;
       state.col = tab.dataset.col;
       state.sel = null; state.draft = null; state.dirty = false;
       Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
@@ -702,9 +716,10 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     var t = e.target;
 
     if (t.id === 'add') {
-      if (!leaveGuard()) return;
+      stash();
+      state.armed = false;
       state.sel = '__new__';
-      state.draft = blank(state.col);
+      state.draft = state.drafts[key(state.col, '__new__')] || blank(state.col);
       state.dirty = true;
       render();
       return;
@@ -721,8 +736,10 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     }
 
     if (t.id === 'revert') {
-      if (state.sel === '__new__') { state.sel = null; state.draft = null; state.dirty = false; render(); return; }
+      delete state.drafts[key(state.col, state.sel)];
       state.dirty = false;
+      state.armed = false;
+      if (state.sel === '__new__') { state.sel = null; state.draft = null; render(); return; }
       select(state.sel);
       return;
     }
@@ -789,6 +806,8 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       } else {
         await state.db.collection(col).doc(state.sel).set(body);
       }
+      delete state.drafts[key(col, '__new__')];
+      delete state.drafts[key(col, state.sel)];
       state.dirty = false;
       toast('Enregistré');
       renderEditor();
@@ -804,15 +823,25 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   }
 
   async function remove() {
-    if (!state.db || !state.sel) return;
-    if (state.sel === '__new__') { state.sel = null; state.draft = null; state.dirty = false; render(); return; }
-    if (!window.confirm('Supprimer cette entrée ? Elle disparaît pour tout le monde.')) return;
+    if (!state.sel) return;
+    if (state.sel === '__new__') {
+      delete state.drafts[key(state.col, '__new__')];
+      state.sel = null; state.draft = null; state.dirty = false; state.armed = false;
+      render();
+      return;
+    }
+    if (!state.armed) { state.armed = true; renderEditor(); return; }
+    if (!state.db) return;
+    var col = state.col, id = state.sel;
     try {
-      await state.db.collection(state.col).doc(state.sel).delete();
-      state.sel = null; state.draft = null; state.dirty = false;
+      await state.db.collection(col).doc(id).delete();
+      delete state.drafts[key(col, id)];
+      state.sel = null; state.draft = null; state.dirty = false; state.armed = false;
       render();
       toast('Supprimé');
     } catch (err) {
+      state.armed = false;
+      renderEditor();
       toast('Suppression impossible');
     }
   }
