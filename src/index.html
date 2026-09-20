@@ -1078,13 +1078,13 @@ a { color: inherit; }
     </div>
   </section>
 
-  <!-- Les lignes sont construites par le script, à partir de PROJETS. C'est le
-       seul contenu de la page qui n'est pas en dur : chaque ligne porte un
-       visuel SVG généré, un flou piloté image par image, et un état net ou
-       flou qui n'a aucun sens sans JavaScript. Sans lui, la section se réduit
-       à son titre, et l'ancre Parcours du halo reste atteignable. -->
+  <!-- Le contenu vient désormais de content/projets.json via build.mjs, et il
+       est présent dans le HTML servi. Chaque ligne porte un visuel SVG
+       généré, un flou piloté image par image, et un état net ou flou qui n'a
+       aucun sens sans JavaScript. Sans lui, la section se réduit à son titre,
+       et l'ancre Parcours du halo reste atteignable. -->
   <section class="projets" id="projets" tabindex="-1" aria-label="Projets">
-    <div class="projets__list" id="projets-list"></div>
+    <div class="projets__list" id="projets-list"><!-- projets --></div>
 
     <div class="projets__fade" aria-hidden="true"></div>
 
@@ -1100,60 +1100,15 @@ a { color: inherit; }
     </div>
   </section>
 
-  <!-- La liste est en dur dans le HTML, pas construite en JavaScript : sans
-       JS, les trois expériences restent lisibles et dépliées. Seule la
-       sphère, qui n'est que du contexte, disparaît. -->
+  <!-- Le contenu vient désormais de content/parcours.json via build.mjs, et il
+       est présent dans le HTML servi : sans JS, les trois expériences restent
+       lisibles et dépliées. Seule la sphère, qui n'est que du contexte,
+       disparaît. -->
   <section class="parcours" id="parcours" tabindex="-1">
     <h2 class="sr-only">Parcours</h2>
     <div class="parcours__split">
       <div>
-        <ul class="xp-list">
-      <li class="xp" id="xp-australie" data-id="australie">
-        <h3 style="margin:0">
-          <button class="xp__head" type="button" aria-expanded="false" aria-controls="fold-australie">
-            <span class="xp__mark" aria-hidden="true"></span>
-            <span class="xp__name">Australie.GAD</span>
-            <span class="xp__dates">2025 à aujourd'hui</span>
-            <span class="xp__role">Audience planning, Paris</span>
-          </button>
-        </h3>
-        <div class="xp__fold" id="fold-australie" role="region" aria-label="Australie.GAD">
-          <div class="xp__foldInner">
-            <p class="xp__body">Construction et analyse d'audiences traduites en personas actionnables pour le planning stratégique, la création et le commerce. Identification de nouvelles cibles sur des problématiques de conquête et de repositionnement. Cas d'étude sur les usages réels d'une plateforme de streaming. Conception et déploiement d'une extension Google Sheets automatisant le nettoyage des exports Kantar TGI : environ 1 heure gagnée par export.</p>
-          </div>
-        </div>
-      </li>
-      <li class="xp" id="xp-anyway" data-id="anyway">
-        <h3 style="margin:0">
-          <button class="xp__head" type="button" aria-expanded="false" aria-controls="fold-anyway">
-            <span class="xp__mark" aria-hidden="true"></span>
-            <span class="xp__name">Anyway</span>
-            <span class="xp__dates">2024 à 2025</span>
-            <span class="xp__role">Co-fondateur et chef de production</span>
-          </button>
-        </h3>
-        <div class="xp__fold" id="fold-anyway" role="region" aria-label="Anyway">
-          <div class="xp__foldInner">
-            <p class="xp__body">Pilotage complet du produit éditorial : ligne éditoriale, casting des invités, rétroplanning de la production à la post-production. 8 épisodes, diffusion hebdomadaire. Itération de la saison 1 vers la saison 2 : collecte et analyse des retours utilisateurs, identification des frictions, décision de refonte du format et de la distribution. Résultats saison 1 : plus de 27 000 vues et 8 600 comptes atteints sur Instagram.</p>
-          </div>
-        </div>
-      </li>
-      <li class="xp" id="xp-havas" data-id="havas">
-        <h3 style="margin:0">
-          <button class="xp__head" type="button" aria-expanded="false" aria-controls="fold-havas">
-            <span class="xp__mark" aria-hidden="true"></span>
-            <span class="xp__name">Havas Media</span>
-            <span class="xp__dates">2023 à 2024</span>
-            <span class="xp__role">Consultant média, Puteaux</span>
-          </button>
-        </h3>
-        <div class="xp__fold" id="fold-havas" role="region" aria-label="Havas Media">
-          <div class="xp__foldInner">
-            <p class="xp__body">Pilotage de campagnes digitales (display, vidéo, social) de bout en bout : choix des régies, arbitrage des budgets, définition de la cible et des KPI, jusqu'au bilan client. Plus de 20 campagnes, secteur bancaire (Crédit Agricole, BForBank, Paylib). Optimisation hebdomadaire des performances et réallocation des budgets. Pilotage en autonomie d'un budget de plus de 50 k€ sur le lancement de la série Samuel (Arte).</p>
-          </div>
-        </div>
-      </li>
-        </ul>
+        <ul class="xp-list"><!-- parcours --></ul>
       </div>
       <div class="parcours__aside">
         <div class="sphere"><canvas id="dust" aria-hidden="true"></canvas></div>
@@ -1440,68 +1395,19 @@ const onScroll = [];
    capture, le view-transition-name posé sur le visuel source puis rendu
    avant la capture du nouvel état, et le retour par le même chemin.
 
-   CONTENU. Les cinq projets ci-dessous viennent du prototype et sont des
-   données de travail, à remplacer par les vrais projets. Seul Audience
-   Planning correspond à une expérience réelle.
+   CONTENU. Les projets vivent dans content/projets.json. Les cinq projets
+   servis viennent du prototype et sont des données de travail, à remplacer
+   par les vrais projets. Seul Audience Planning correspond à une expérience
+   réelle.
    ======================================================================= */
 (() => {
   const section = document.getElementById('projets');
   const list = document.getElementById('projets-list');
   if (!section || !list) return;
 
-  const PROJETS = [
-    { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
-      a: '#fff0c2', b: '#fa520f', c: '#c04408' },
-    { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
-      a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
-    { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
-      a: '#fff0c2', b: '#fcb07a', c: '#171613' },
-    { date: '2021', nom: 'Cadence', theme: 'Design system',
-      a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
-    { date: '2020', nom: 'Halo', theme: 'Application mobile',
-      a: '#fcb07a', b: '#fa520f', c: '#171613' }
-  ];
-
   /* Les valeurs lues ici sont écrites en dur dans la feuille de style, sans
      calc() : une propriété personnalisée n'est pas résolue à la lecture. */
   const cssVar = (n) => parseFloat(getComputedStyle(section).getPropertyValue(n));
-
-  /* Visuel de substitution, un dégradé et une silhouette. Les vrais visuels
-     sont une obligation d'édition : un projet sans visuel ne se publie pas. */
-  function visual(p, i) {
-    return `
-      <div class="visual" data-loading>
-        <svg class="visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
-             role="img" aria-label="Visuel du projet ${p.nom}">
-          <defs>
-            <linearGradient id="pj-g${i}" x1="0" y1="0" x2="0.4" y2="1">
-              <stop offset="0%" stop-color="${p.a}"/>
-              <stop offset="60%" stop-color="${p.b}"/>
-              <stop offset="100%" stop-color="${p.c}"/>
-            </linearGradient>
-          </defs>
-          <rect width="160" height="100" fill="url(#pj-g${i})"/>
-          <path d="M0 100 L34 58 L58 78 L92 40 L118 66 L160 24 L160 100 Z"
-                fill="${p.c}" opacity="0.22"/>
-          <circle cx="122" cy="26" r="11" fill="${p.a}" opacity="0.7"/>
-        </svg>
-      </div>`;
-  }
-
-  /* Les trois champs de gauche sont dans une pile en display: contents sur
-     large, donc invisible à la grille, qui redevient une vraie colonne sous
-     860px. */
-  function ligne(p, i) {
-    return `
-      <div class="row__grid wrap">
-        <div class="stack">
-          <span class="f-date">${p.date}</span>
-          <h3 class="f-name"><span class="f-name__u">${p.nom}</span></h3>
-          <span class="f-theme">${p.theme}</span>
-        </div>
-        ${visual(p, i)}
-      </div>`;
-  }
 
   let rows = [];
   let inners = [];          /* .row__inner, porteurs du flou */
@@ -1513,17 +1419,10 @@ const onScroll = [];
   let blurScale = 1;
   let bande = [0, 0];       /* plage de défilement où l'écran est à l'écran */
 
+  /* Les lignes sont déjà dans le document, générées par build.mjs à partir de
+     content/projets.json : cette fonction ne fait plus que les reprendre et
+     les mesurer. */
   function build() {
-    PROJETS.forEach((p, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'row';
-      btn.type = 'button';
-      btn.dataset.index = i;
-      btn.setAttribute('aria-label', `${p.nom}, ${p.theme}, ${p.date}`);
-      btn.innerHTML = `<div class="row__inner">${ligne(p, i)}</div>`;
-      list.appendChild(btn);
-    });
-
     rows = [...list.querySelectorAll('.row')];
     inners = rows.map((r) => r.querySelector('.row__inner'));
     applied = rows.map(() => ({ blur: -1, fade: -1 }));
