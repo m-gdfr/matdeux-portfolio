@@ -462,7 +462,63 @@ try {
 let out = injecte(template, '<!-- projets -->', projets.map(boutonProjet));
 out = injecte(out, '<!-- parcours -->', parcours.map(ligneParcours));
 
-if (out.includes('<!-- projets -->') || out.includes('<!-- parcours -->')) {
+/* ==========================================================================
+   Donnée injectée dans les deux modules de script qui lisent les projets,
+   la section Projets et la page projet. Le markup est généré au-dessus,
+   ces objets sont ce que le script lit ensuite : PROJETS pour les noms et
+   les couleurs, PROJETS_CONTENU pour la page projet, indexé sur la position
+   dans content/projets.json.
+
+   Le script pose ces valeurs dans du innerHTML sans les échapper, donc elles
+   sont échappées ici, avant de devenir du JSON.
+   ======================================================================= */
+function paragraphes(texte) {
+  return String(texte).split(/\n+/).map((t) => t.trim()).filter(Boolean).map(escapeHtml);
+}
+
+const donneeProjets = projets.map((p) => ({
+  date: escapeHtml(p.date),
+  nom: escapeHtml(p.nom),
+  theme: escapeHtml(p.client),
+  a: p.a,
+  b: p.b,
+  c: p.c
+}));
+
+const donneePageProjet = {};
+pageProjet.forEach((pp) => {
+  const i = projets.findIndex((p) => p.id === pp.id);
+  if (i === -1) return;
+  const p = projets[i];
+  const cap = pp.media && isNonEmptyString(pp.media.alt)
+    ? escapeHtml(pp.media.alt)
+    : `Visuel du projet ${escapeHtml(p.nom)}`;
+  donneePageProjet[i] = {
+    chapo: escapeHtml(pp.chapo),
+    client: escapeHtml(p.client),
+    media: { cap },
+    blocs: [
+      { h: 'Contexte', p: paragraphes(pp.contexte) },
+      { h: 'Enjeu', callout: escapeHtml(pp.enjeu), perim: escapeHtml((pp.perimetre || []).join(', ')) },
+      { h: 'Démarche', p: paragraphes(pp.demarche) },
+      { h: 'Résultat', result: true, p: paragraphes(pp.resultat) }
+    ]
+  };
+});
+
+function injecteDonnee(html, marker, valeur) {
+  if (!html.includes(marker)) {
+    console.error(`src/index.html : le repère ${marker} est absent du gabarit.`);
+    process.exit(1);
+  }
+  return html.replace(marker, JSON.stringify(valeur, null, 2));
+}
+
+out = injecteDonnee(out, '[/* projets-data */]', donneeProjets);
+out = injecteDonnee(out, '{/* page-projet-data */}', donneePageProjet);
+
+if (out.includes('<!-- projets -->') || out.includes('<!-- parcours -->')
+    || out.includes('projets-data') || out.includes('page-projet-data')) {
   console.error('src/index.html : un repère survit dans la sortie, écriture annulée.');
   process.exit(1);
 }

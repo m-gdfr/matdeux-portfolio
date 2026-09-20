@@ -1711,18 +1711,7 @@ const onScroll = [];
 /* La liste des projets. Hors des deux modules qui la lisent, la section
    Projets et la page projet : c'est la donnée de la page, pas celle d'un
    écran. */
-const PROJETS = [
-  { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
-    a: '#fff0c2', b: '#fa520f', c: '#c04408' },
-  { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
-    a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
-  { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
-    a: '#fff0c2', b: '#fcb07a', c: '#171613' },
-  { date: '2021', nom: 'Cadence', theme: 'Design system',
-    a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
-  { date: '2020', nom: 'Halo', theme: 'Application mobile',
-    a: '#fcb07a', b: '#fa520f', c: '#171613' }
-];
+const PROJETS = [/* projets-data */];
 
 /* ==========================================================================
    Ancre Projets
@@ -2367,11 +2356,10 @@ const PROJETS = [
    feuille avance avec elle, image par image pendant le geste : attendre la
    fin du geste pour les jouer ferait deux évènements là où il n'y en a qu'un.
 
-   Un seul projet est écrit pour l'instant, Audience Planning. Les quatre
-   autres sont des exemples qui vont changer : leur ligne reste cliquable dans
-   la liste, elle n'ouvre simplement rien. Le jour où ils sont écrits, il n'y
-   a qu'à les ajouter à PROJETS_CONTENU et le pied de carte retrouve ses deux
-   voisins.
+   Le contenu est injecté par build.mjs depuis content/page-projet.json, indexé
+   sur la position dans content/projets.json. Un projet sans entrée n'ouvre
+   rien : sa ligne reste cliquable dans la liste et le pied de carte de ses
+   voisins l'ignore.
    ======================================================================= */
 const pageProjet = (() => {
   const sheet = document.getElementById('pj-sheet');
@@ -2383,40 +2371,8 @@ const pageProjet = (() => {
   /* Le contenu, indexé sur la position dans PROJETS. Les longueurs sont
      celles de la spec : chapô 36 mots, contexte 56, enjeu 58, démarche 196,
      résultat 63. Un gabarit calé sur du texte court ment toujours. */
-  const PROJETS_CONTENU = {
-    0: {
-      chapo: "Le ciblage média d'Australie.GAD vivait dans un tableur de quarante onglets. J'ai conçu l'outil qui l'a remplacé : onze jours de paramétrage ramenés à deux, six marchés basculés en trois mois sans retour en arrière.",
-      client: 'Australie.GAD',
-      media: { cap: "Le produit en 40 secondes, de la saisie d'un plan à l'arbitrage." },
-      blocs: [
-        { h: 'Contexte', p: [
-          "Australie.GAD vend de l'espace média à six marchés. Chaque plan d'audience se construisait dans un tableur partagé de quarante onglets, dupliqué à chaque campagne.",
-          "Les équipes locales n'avaient aucune visibilité sur les inventaires déjà réservés ailleurs : deux ventes sur dix se chevauchaient, et la direction commerciale arbitrait à la main, après coup."
-        ]},
-        /* L'objectif tient en une phrase ou il n'est pas un objectif. Le
-           périmètre reste dessous, en petit : il répond à l'autre question du
-           recruteur, celle de ce qui n'était pas de toi. */
-        { h: 'Enjeu',
-          callout: "Diviser par trois le temps de paramétrage d'un plan, sans perdre les équipes qui maîtrisaient déjà le tableur.",
-          perim: "Recherche utilisateur, modèle d'information, parcours de création, design system. La facturation restait hors champ." },
-        { h: 'Démarche', p: [
-          "J'ai commencé par regarder travailler six planneurs, deux par marché, sur leurs propres campagnes. Le tableur n'était pas le problème : la colonne de calcul l'était. Personne ne la lisait, tout le monde la recopiait.",
-          "Première décision, garder la grille. Un outil qui aurait remplacé le tableau par un formulaire aurait été rejeté. J'ai conçu une grille éditable qui reprend les gestes du tableur : sélection multiple, copier-coller, remplissage vers le bas.",
-          "Deuxième décision, sortir la disponibilité du calcul. Chaque ligne d'inventaire porte un état, libre, réservé ailleurs, en conflit, affiché pendant la saisie plutôt que dans un rapport de fin. Le conflit devient une information, pas une sanction.",
-          "Troisième décision, ne pas bloquer un plan en conflit. Un blocage aurait poussé les équipes à revenir au tableur pour contourner l'outil. Le plan part avec son conflit visible et remonte à la direction commerciale dans une file dédiée.",
-          "Le reste a été tranché sur un prototype cliquable, testé trois fois à trois semaines d'intervalle, sur des campagnes réelles."
-        ]},
-        { h: 'Résultat', result: true, figs: [
-          { n: '11 j à 2 j', l: "Paramétrage d'un plan" },
-          { n: '19 % à 4 %', l: 'Ventes en chevauchement' },
-          { n: '6 / 6', l: 'Marchés basculés en 3 mois' }
-        ], p: [
-          "Les six marchés ont basculé entre mars et juillet 2024, sans retour au tableur. La grille éditable est reprise depuis par deux autres outils internes du groupe."
-        ]}
-      ]
-    }
-  };
-
+  /* Le contenu, indexé sur la position dans PROJETS. */
+  const PROJETS_CONTENU = {/* page-projet-data */};
   const main = document.querySelector('main');
   const fond = [main, document.getElementById('site-header')].filter(Boolean);
 
