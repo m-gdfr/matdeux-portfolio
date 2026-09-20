@@ -1,0 +1,47 @@
+[
+  {
+    "id": "audience-planning",
+    "date": "2024 à 2025",
+    "nom": "Audience Planning",
+    "client": "Ciblage média",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#c04408"
+  },
+  {
+    "id": "console-partenaires",
+    "date": "2023",
+    "nom": "Console Partenaires",
+    "client": "Outil interne",
+    "a": "#e6f2ed",
+    "b": "#cfe6df",
+    "c": "#0b6b5a"
+  },
+  {
+    "id": "atlas",
+    "date": "2022",
+    "nom": "Atlas",
+    "client": "Catalogue de données",
+    "a": "#fff0c2",
+    "b": "#fcb07a",
+    "c": "#171613"
+  },
+  {
+    "id": "cadence",
+    "date": "2021",
+    "nom": "Cadence",
+    "client": "Design system",
+    "a": "#fffdf6",
+    "b": "#cfe6df",
+    "c": "#0b6b5a"
+  },
+  {
+    "id": "halo",
+    "date": "2020",
+    "nom": "Halo",
+    "client": "Application mobile",
+    "a": "#fcb07a",
+    "b": "#fa520f",
+    "c": "#171613"
+  }
+]
