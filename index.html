@@ -1177,6 +1177,18 @@ function track(event) {
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* Poser l'ancre sans jamais casser la page. Dans un contexte sans origine
+   propre (iframe srcdoc de certaines previsualisations, document sandboxe),
+   l'API History leve une SecurityError. L'ancre est du confort, pas une
+   fonction : on l'abandonne en silence plutot que d'interrompre le script. */
+function poserAncre(url) {
+  try {
+    history.replaceState(null, '', url);
+  } catch (e) {
+    /* Contexte sans origine propre. Rien a faire. */
+  }
+}
+
 const onScroll = [];
 
 /* ==========================================================================
@@ -1191,7 +1203,7 @@ const onScroll = [];
     track('clic_ancre_projets');
     document.getElementById('projets')
       .scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
-    history.replaceState(null, '', '#projets');
+    poserAncre('#projets');
   });
 
   /* L'ancre n'est plus affichee quand l'accueil a quitte l'ecran */
@@ -1360,7 +1372,7 @@ const onScroll = [];
     poser();
     /* L'ancre est remplacée, jamais empilée : le bouton retour du navigateur
        ramène à la page précédente, pas à un état antérieur de l'accordéon. */
-    history.replaceState(null, '', ouverte ? '#' + ouverte : location.pathname + location.search);
+    poserAncre(ouverte ? '#' + ouverte : location.pathname + location.search);
   }
 
   section.querySelectorAll('.xp').forEach((xp) => {
@@ -1849,7 +1861,7 @@ const onScroll = [];
       e.preventDefault();
       document.getElementById('parcours')
         .scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
-      history.replaceState(null, '', '#parcours');
+      poserAncre('#parcours');
     });
   }
 
