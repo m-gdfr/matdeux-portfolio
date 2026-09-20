@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "scan-avis",
+    "chapo": "Gagner du temps",
+    "contexte": "Scan les avis et transforme en matière produit",
+    "enjeu": "Déceler les signaux faibles des attentes des utilisateurs.",
+    "demarche": "créer le skill.",
+    "resultat": "une page html structurée",
+    "perimetre": [
+      "Cadrage stratégie",
+      "Claude code"
+    ]
+  }
+]

@@ -9,9 +9,10 @@
    Aucune dépendance npm. Node seul.
 
    Trois arbitrages, tranchés avec l'auteur, priment sur la spec 05 :
-   1. Le champ media est facultatif dans content/projets.json (aucun visuel
-      n'existe encore). Absent : avertissement non bloquant. Présent : validé
-      à fond, avec les mêmes règles que dans page-projet.json (hors vidéo).
+   1. Le champ media est facultatif dans les deux fichiers (aucun visuel
+      n'existe encore, et le texte d'une page projet s'écrit avant son
+      visuel). Absent : avertissement non bloquant. Présent : validé à fond.
+      content/projets.json refuse la vidéo, page-projet.json l'accepte.
    2. content/page-projet.json peut être vide. Ses règles de validation sont
       écrites et actives dès qu'une entrée apparaît.
    3. Les valeurs client sont reprises telles quelles. Un avertissement liste
@@ -303,7 +304,6 @@ if (Array.isArray(pageProjet)) {
     ['id', 'chapo', 'contexte', 'enjeu', 'demarche', 'resultat'].forEach((champ) => {
       if (!isNonEmptyString(pp[champ])) err(`${ctx}, ${champ} : obligatoire.`);
     });
-    if (pp.media === undefined || pp.media === null) err(`${ctx}, media : obligatoire.`);
 
     if (isNonEmptyString(pp.id)) {
       if (pageProjetIds.has(pp.id)) {
@@ -333,7 +333,11 @@ if (Array.isArray(pageProjet)) {
       });
     }
 
-    if (pp.media != null) validateMedia(pp.media, `${ctx}.media`, true);
+    if (pp.media == null) {
+      warn(`${ctx} (${pp.id ?? '?'}) : aucun media, la page projet s'ouvrira sans visuel.`);
+    } else {
+      validateMedia(pp.media, `${ctx}.media`, true);
+    }
 
     if (isNonEmptyString(pp.resultat) && !/\d/.test(pp.resultat)) {
       warn(`${ctx}, resultat : ne contient ni chiffre ni date ("${pp.resultat}").`);

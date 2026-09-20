@@ -20,9 +20,11 @@ les remettre d'accord.
 | `parcours` | `content/parcours.json` | id, nom, dates, role, body |
 | `page-projet` | `content/page-projet.json` | id, chapo, contexte, enjeu, demarche, resultat, perimetre, media |
 
-L'identifiant du document est l'`id` de l'entrée. Le champ `ordre` range la
-liste, il ne part pas dans le JSON. `media` est omis quand il est absent ou
-vide.
+Le document porte un identifiant tiré au hasard par la page ; c'est le champ
+`id` de son corps qui compte, jamais l'identifiant du document. Pousser vers la
+page se fait donc en écrivant sur l'identifiant existant, sinon l'entrée est
+dédoublée. Le champ `ordre` range la liste, il ne part pas dans le JSON.
+`media` est omis quand il est absent ou vide.
 
 `build.mjs` est le seul juge de la validité. La page prévient, le build trie.
 
