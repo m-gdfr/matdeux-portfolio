@@ -1410,13 +1410,21 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
   padding: 18px var(--pj-pad) 20px;
   border-bottom: 1px solid var(--pj-rule);
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 160ms ease;
 }
+/* La flèche est une marque, pas le début de la ligne. Le titre et le nombre
+   se calent sur le mot du dessus, jamais sur la pointe : sinon les trois
+   lignes de la carte partent de trois endroits différents. Le retrait vaut
+   la flèche plus son écart, et il passe à droite quand la carte est à
+   droite. */
+.pj-navc__t, .pj-navc__y { padding-left: calc(14px + 8px); }
 .pj-navc--next { text-align: right; align-items: flex-end; }
 .pj-navc--next .pj-navc__k { flex-direction: row-reverse; }
+.pj-navc--next .pj-navc__t,
+.pj-navc--next .pj-navc__y { padding-left: 0; padding-right: calc(14px + 8px); }
 @media (hover: hover) and (pointer: fine) {
   .pj-navc:hover { background: var(--pj-bg-2); }
-  .pj-navc:hover .pj-navc__t { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
   .pj-navc--next:hover .pj-navc__a { transform: translateX(4px); }
   .pj-navc--prev:hover .pj-navc__a { transform: translateX(-4px); }
 }
@@ -1448,6 +1456,7 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
   color: var(--color-suie);
   font-family: inherit; font-size: 15px; font-weight: var(--weight-title);
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 160ms ease, transform 110ms var(--ease-out);
 }
 .pj-btn:active { transform: scale(0.98); }
