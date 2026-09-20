@@ -25,6 +25,9 @@
   --color-parchment-canvas: #fffaeb;
   --color-papier: #fffdf6;
   --color-suie: #171613;
+  /* Le noir habitable du système, un cran au-dessus de Suie. C'est la
+     matière de la carte projet, la seule surface sombre du site. */
+  --color-surface: #201e1a;
   --color-jade: #0b6b5a;
   --color-ember: #fa520f;
   --color-ember-ink: #c04408;
@@ -998,6 +1001,537 @@ a { color: inherit; }
      reviendrait a ne rien repondre. */
   .row[data-claimed] .row__inner { transition-duration: 120ms; }
 }
+
+/* ===========================================================================
+   PAGE PROJET, la carte superposée
+   ===========================================================================
+
+   La page projet ne remplace pas la liste, elle se pose dessus. Sur
+   téléphone, une feuille qui monte du bas et laisse voir la liste au-dessus
+   d'elle. Sur ordinateur, une fenêtre centrée de la même famille, même rayon
+   et même matière. Dans les deux cas la liste reste derrière, et la refermer
+   c'est y revenir, sans rechargement ni réorientation.
+
+   Tout est préfixé pj- : la carte croise .hero et .visual, qui existent déjà
+   sur cette page avec un tout autre sens.
+
+   La matière est Surface, décidée avec Mathieu. Deux valeurs s'inversent par
+   rapport au système clair : l'Ember encre #c04408, qui est la version
+   lisible de l'orange sur parchemin, tombe à 3,1:1 sur Surface, il redevient
+   un fond. C'est l'Ember plein #fa520f qui passe à 6,1:1 et devient le ton de
+   texte. Un hex de marque et un hex lisible ne sont pas la même chose, et ils
+   échangent leurs rôles quand le fond change.
+   ======================================================================== */
+:root {
+  --pj-bg: var(--color-surface);
+  --pj-bg-2: #262420;
+  --pj-ink: var(--color-parchment-canvas);
+  --pj-ink-muted: rgba(255, 250, 235, 0.64);
+  --pj-rule: rgba(255, 250, 235, 0.14);
+  --pj-accent-ink: var(--color-ember);
+  /* Sur fond sombre le callout ne peut plus être un aplat beurre : il
+     éclairerait la carte entière pour porter une phrase. La couleur passe
+     dans le filet, le fond reste une nuance du fond. */
+  --pj-callout-bg: rgba(255, 250, 235, 0.06);
+  --pj-result-bg: var(--color-ember-ink);
+  --pj-result-ink: var(--color-parchment-canvas);
+  --pj-result-ink-muted: rgba(255, 250, 235, 0.74);
+
+  --pj-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Le même rayon sur les deux appareils : c'est ce qui fait reconnaître le
+     même objet d'un support à l'autre. */
+  --pj-radius: 20px;
+  /* Ce qui reste de la page au-dessus de la feuille sur téléphone. Assez pour
+     qu'on voie qu'elle est toujours là, trop peu pour qu'on croie pouvoir y
+     lire quelque chose. */
+  --pj-peek: 56px;
+  --pj-pad: 24px;
+}
+
+/* La page derrière recule. Le transform est posé sur main et non sur body :
+   l'en-tête est fixe et sortirait de son ancrage.
+   Deux durées, pas une. Elle recule en 420ms avec la feuille qui monte, elle
+   revient en 300ms : à la fermeture la liste est la destination, la faire
+   attendre serait du remords. */
+main {
+  transform-origin: 50% 0%;
+  transition: transform 300ms var(--pj-ease-drawer), filter 300ms var(--pj-ease-drawer);
+}
+body[data-projet] main {
+  transform: scale(0.94) translateY(12px);
+  filter: brightness(0.94);
+  transition-duration: 420ms;
+}
+
+/* Un élément en position fixe dans un ancêtre transformé se repositionne sur
+   cet ancêtre : le fondu et le halo de Projets partiraient au bas du
+   document. Ils n'ont rien à dire sous un voile, ils partent tout de suite.
+   La spécificité suffit, l'attribut sur body passe devant les règles de
+   chrome plus haut.
+
+   Ils restent partis pendant la sortie, le temps que main revienne à
+   l'échelle 1 : les rendre pendant que la transformation court les ferait
+   réapparaître au mauvais endroit, puis sauter à leur place. */
+body[data-projet] .site-header { transform: translateY(-100%); }
+body[data-projet] .projets__fade,
+body[data-projet] .projets[data-chrome] .projets__fade,
+body[data-projet] .outro,
+body[data-projet] .projets[data-chrome] .outro,
+body[data-pj-sortie] .projets__fade,
+body[data-pj-sortie] .projets[data-chrome] .projets__fade,
+body[data-pj-sortie] .outro,
+body[data-pj-sortie] .projets[data-chrome] .outro {
+  opacity: 0;
+  visibility: hidden;
+  transition: none;
+}
+
+/* Le voile. Il ne noircit pas, il chauffe : sur du parchemin un scrim noir
+   vire au gris et sort de la palette. Calé sur la feuille, aux deux sens : un
+   voile qui a sa propre durée se détache de l'objet qu'il accompagne et
+   redevient un calque. */
+.pj-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(23, 22, 19, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms var(--ease-out);
+}
+body[data-projet] .pj-scrim {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: 420ms;
+}
+
+/* ---------------------------------------------------------------------------
+   LA FEUILLE. Ancrée en bas, elle monte. Elle s'arrête à 56px du haut, la
+   page dépasse, la sortie est évidente avant même de chercher un bouton.
+   ------------------------------------------------------------------------ */
+.pj-sheet {
+  position: fixed;
+  z-index: 210;
+  left: 0; right: 0; bottom: 0; top: var(--pj-peek);
+  display: flex;
+  flex-direction: column;
+  background: var(--pj-bg);
+  color: var(--pj-ink);
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--pj-radius) var(--pj-radius) 0 0;
+  box-shadow: 0 -2px 24px rgba(23, 22, 19, 0.18), 0 -1px 0 rgba(23, 22, 19, 0.06);
+  transform: translateY(100%);
+  /* 300ms à la fermeture, 420ms à l'ouverture. À l'ouverture on regarde un
+     objet arriver, à la fermeture la décision est prise : rejouer les 420ms
+     serait faire patienter quelqu'un qui est déjà parti. */
+  transition: transform 300ms var(--pj-ease-drawer);
+  /* pan-y pour que le contenu défile au doigt ; le geste de renvoi est repris
+     à la main dans le script, depuis le haut du contenu. */
+  touch-action: pan-y;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+  will-change: transform;
+}
+body[data-projet] .pj-sheet { transform: translateY(0); transition-duration: 420ms; }
+
+/* Fermée, la carte ne se clique pas. Sur ordinateur elle reste centrée et
+   seulement transparente : sans cette ligne elle intercepterait les clics au
+   milieu de la page. Le script pose inert en plus, qui la sort de l'ordre de
+   tabulation et de l'arbre d'accessibilité sans la retirer du flux, donc sans
+   empêcher le trajet de sortie de se jouer. */
+.pj-sheet { pointer-events: none; }
+body[data-projet] .pj-sheet { pointer-events: auto; }
+
+/* Pendant le geste, plus rien ne doit se sélectionner sous le doigt ou le
+   curseur : le tirage n'est pas une lecture. */
+body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+
+/* La poignée. Elle ne sert à rien de fonctionnel, elle annonce que la feuille
+   se tire. Téléphone seulement : sur ordinateur elle mentirait. */
+.pj-grab {
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  width: 40px; height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 250, 235, 0.3);
+  touch-action: none;
+}
+/* Le trait fait 40 x 4 px, la zone qu'on vise en fait 120 x 32. On tire une
+   poignée approximativement, jamais au pixel. */
+.pj-grab::after { content: ''; position: absolute; inset: -14px -40px; }
+
+/* L'en-tête de la carte tire toujours la feuille, même quand le contenu est
+   défilé : c'est la partie de l'objet qu'on saisit, pas une partie du
+   document qu'on lit. */
+.pj-topbar { touch-action: none; }
+
+/* La croix. Toujours au même endroit, toujours au-dessus du contenu, y
+   compris sur le visuel : c'est la sortie, elle ne se cherche pas. Sur
+   Surface, un disque parchemin plein ferait un trou de lumière en haut à
+   droite d'une carte sombre. Le même objet, en verre teinté. */
+.pj-close {
+  position: absolute;
+  z-index: 4;
+  top: 14px; right: 14px;
+  width: 34px; height: 34px;
+  border: 0; border-radius: 999px;
+  display: grid; place-items: center;
+  background: rgba(255, 250, 235, 0.14);
+  color: var(--color-parchment-canvas);
+  box-shadow: inset 0 0 0 1px rgba(255, 250, 235, 0.18);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 110ms var(--ease-out);
+}
+.pj-close:active { transform: scale(0.94); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-close:hover { background: rgba(255, 250, 235, 0.22); }
+}
+
+/* Le défilement a lieu dans la feuille, jamais derrière. */
+.pj-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+/* Barre interne, révélée au défilement. Elle ne sert qu'à une chose : redire
+   quel projet on lit une fois le titre parti en haut. */
+.pj-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 62px;
+  margin-bottom: -62px;
+  display: flex; align-items: center;
+  padding: 0 60px 0 var(--pj-pad);
+  background: color-mix(in srgb, var(--pj-bg) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+  border-bottom: 1px solid transparent;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+.pj-scroll[data-scrolled] .pj-topbar { opacity: 1; border-bottom-color: var(--pj-rule); }
+.pj-topbar__t {
+  margin: 0;
+  font-size: 17px; font-weight: var(--weight-lede); letter-spacing: -0.008em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------------------------------------------------------------------------
+   L'ÉCRAN D'OUVERTURE. Quatre informations, rien d'autre : le nom du projet,
+   ce qu'il a produit, le client, la date.
+
+   Il occupe exactement la hauteur de la carte, jamais un pixel de plus, et le
+   premier chapitre ne dépasse pas dessous. C'est un choix coûteux, on
+   sacrifie l'amorce de lecture qui fait défiler, et c'est le prix d'une
+   entrée qui se lit d'un regard au lieu d'être survolée.
+
+   Le chevron du bas paie cette dette : sans lui, rien ne dirait qu'il y a une
+   suite. Il n'est pas une décoration, il est la seule preuve que la carte
+   continue.
+   ------------------------------------------------------------------------ */
+.pj-hero {
+  position: relative;
+  min-height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 72px var(--pj-pad) 64px;
+}
+.pj-title {
+  margin: 0 0 20px;
+  font-weight: var(--weight-title);
+  font-size: clamp(38px, 10vw, 52px);
+  line-height: 1.04; letter-spacing: -0.036em;
+  max-width: 15ch;
+}
+.pj-chapo {
+  margin: 0 0 24px;
+  font-size: 20px; font-weight: var(--weight-body);
+  line-height: 1.55; letter-spacing: -0.016em;
+  max-width: 44ch;
+  color: var(--pj-ink);
+}
+.pj-meta {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  font-size: 15px; font-weight: var(--weight-lede); color: var(--pj-ink-muted);
+}
+.pj-meta li:not(:last-child)::after { content: '·'; margin-left: 10px; opacity: 0.5; }
+.pj-meta li:first-child { color: var(--pj-ink); }
+.pj-hint {
+  position: absolute;
+  left: 50%; bottom: 22px;
+  transform: translateX(-50%);
+  color: var(--color-ember);
+  transition: opacity 200ms var(--ease-out);
+}
+.pj-scroll[data-moved] .pj-hint { opacity: 0; }
+
+/* ---------------------------------------------------------------------------
+   LES CHAPITRES. Pas de numérotation, pas de lettre STAR. Le cadre STAR reste
+   l'ossature d'écriture, il cesse d'être un affichage : « 01 . S » ne dit
+   rien à un recruteur, il ne connaît pas le gabarit, il connaît les
+   questions. Ce sont donc les questions qui restent, en titre.
+   ------------------------------------------------------------------------ */
+.pj-body { padding: 0 var(--pj-pad); }
+.pj-chap { padding: 28px 0 24px; }
+.pj-chap:first-child { padding-top: 40px; }
+.pj-chap:last-child { padding-bottom: 40px; }
+.pj-chap__h {
+  margin: 0 0 14px;
+  font-size: 22px; font-weight: var(--weight-title);
+  line-height: 1.28; letter-spacing: -0.02em;
+  text-decoration: underline;
+  text-decoration-color: var(--color-ember);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+.pj-chap p { margin: 0 0 14px; max-width: 46ch; }
+.pj-chap p:last-child { margin-bottom: 0; }
+
+/* Le callout d'objectif. Une phrase, et une seule : l'objectif d'un projet
+   qui tient en trois phrases n'est pas un objectif, c'est un résumé. Le
+   périmètre reste sous la phrase, en petit, parce qu'il répond à l'autre
+   question du recruteur, ce qui n'était pas de toi. */
+.pj-callout { margin: 0; max-width: 44ch; }
+.pj-callout p {
+  margin: 0;
+  font-size: 22px; font-weight: var(--weight-lede); font-style: italic;
+  line-height: 1.45; letter-spacing: -0.02em;
+}
+.pj-callout__perim {
+  display: block;
+  margin-top: 12px;
+  font-size: 14px; font-weight: var(--weight-body); line-height: 1.55;
+  color: var(--pj-ink-muted);
+}
+.pj-callout__perim b { font-weight: var(--weight-lede); color: var(--pj-ink); }
+
+/* Le média de présentation. Pleine largeur, sans rayon : il touche les deux
+   bords de la carte pour se lire comme une fenêtre sur le projet et non comme
+   une illustration posée dans le texte. Emplacement réservé par un ratio,
+   flou qui se lève, aucun saut de mise en page. */
+.pj-media { margin: 0; position: relative; }
+.pj-media .pj-visual { border-radius: 0; aspect-ratio: 16 / 9; }
+.pj-media .pj-cap { padding: 10px var(--pj-pad) 0; margin: 0; }
+
+.pj-figure { margin: 20px 0 0; }
+.pj-visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(160deg, #fff0c2, #fcb07a);
+}
+.pj-visual svg { display: block; width: 100%; height: 100%; }
+.pj-visual__img { transition: filter 420ms var(--ease-out), transform 420ms var(--ease-out); }
+.pj-visual[data-loading] .pj-visual__img { filter: blur(18px); transform: scale(1.06); }
+.pj-cap {
+  margin: 8px 2px 0;
+  font-size: 13px; line-height: 1.5; letter-spacing: -0.004em;
+  color: var(--pj-ink-muted);
+}
+
+/* Le bouton de lecture. Rond, en verre, la flèche en Ember : l'orange est un
+   signal, il ne remplit pas un disque de 56px. La zone cliquable couvre tout
+   le média, la pastille n'est que sa cible visible : viser un disque de 56px
+   au pouce est un test d'adresse. */
+.pj-play {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid; place-items: center;
+  border: 0; background: none; padding: 0;
+  cursor: pointer;
+}
+.pj-play__d {
+  width: 56px; height: 56px;
+  border-radius: 999px;
+  display: grid; place-items: center;
+  background: rgba(255, 250, 235, 0.92);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(23, 22, 19, 0.24);
+  color: var(--color-ember);
+  transition: transform 140ms var(--ease-out), opacity 160ms ease;
+}
+.pj-play:active .pj-play__d { transform: scale(0.94); }
+@media (hover: hover) and (pointer: fine) { .pj-play:hover .pj-play__d { transform: scale(1.04); } }
+.pj-play__pause { display: none; }
+.pj-media[data-playing] .pj-play__play { display: none; }
+.pj-media[data-playing] .pj-play__pause { display: block; }
+/* Pendant la lecture la pastille s'efface, elle reviendra au survol ou au
+   toucher : on ne pose pas un disque opaque au milieu de ce qu'on regarde. */
+.pj-media[data-playing] .pj-play__d { opacity: 0; }
+.pj-media[data-playing] .pj-play:hover .pj-play__d,
+.pj-media[data-playing] .pj-play:focus-visible .pj-play__d { opacity: 1; }
+/* Le média définitif sera une vidéo. En attendant, un lent travelling : la
+   seule façon honnête de dire « ça joue » sans encoder une vidéo. */
+.pj-media[data-playing] .pj-visual__img { animation: pj-play-zoom 16s linear both; }
+@keyframes pj-play-zoom { from { transform: scale(1); } to { transform: scale(1.12); } }
+
+/* ---------------------------------------------------------------------------
+   LE RÉSULTAT, pleine largeur en Ember encre. C'est le seul moment où la
+   carte change de matière. Le bloc qui porte la preuve devient un objet
+   différent du reste, repérable en diagonale sans avoir à le lire. Il n'a pas
+   de visuel : une image ici ferait un second sujet au moment précis où il
+   n'en faut qu'un.
+   ------------------------------------------------------------------------ */
+.pj-result {
+  background: var(--pj-result-bg);
+  color: var(--pj-result-ink);
+  padding: 36px var(--pj-pad) 40px;
+}
+.pj-result .pj-chap { padding: 0; }
+.pj-result .pj-chap__h { color: var(--pj-result-ink); text-decoration: none; }
+.pj-result p { max-width: 46ch; color: var(--pj-result-ink); }
+.pj-figs { display: flex; flex-wrap: wrap; gap: 18px 40px; margin: 0 0 20px; padding: 0; list-style: none; }
+.pj-fig__n {
+  display: block;
+  font-size: 32px; font-weight: var(--weight-title);
+  line-height: 1.1; letter-spacing: -0.028em;
+  font-variant-numeric: tabular-nums;
+}
+.pj-fig__l {
+  display: block;
+  font-size: 13px; font-weight: var(--weight-lede); line-height: 1.4;
+  color: var(--pj-result-ink-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   PIED DE CARTE. Enchaîner, ou sortir. Dans une carte, « suivant » ne change
+   pas de page : il remplace le contenu de la carte, la liste reste où elle
+   est. Un seul projet est écrit pour l'instant, il n'y a donc qu'une carte,
+   le retour à la liste.
+   ------------------------------------------------------------------------ */
+.pj-foot { border-top: 1px solid var(--pj-rule); }
+.pj-navs { display: grid; }
+.pj-navc {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 18px var(--pj-pad) 20px;
+  border-bottom: 1px solid var(--pj-rule);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+.pj-navc--next { text-align: right; align-items: flex-end; }
+.pj-navc--next .pj-navc__k { flex-direction: row-reverse; }
+@media (hover: hover) and (pointer: fine) {
+  .pj-navc:hover { background: var(--pj-bg-2); }
+  .pj-navc:hover .pj-navc__t { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
+  .pj-navc--next:hover .pj-navc__a { transform: translateX(4px); }
+  .pj-navc--prev:hover .pj-navc__a { transform: translateX(-4px); }
+}
+.pj-navc__k {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: var(--weight-title);
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--pj-ink-muted);
+}
+.pj-navc__a { color: var(--color-ember); transition: transform 180ms var(--ease-out); }
+.pj-navc__t { font-size: 20px; font-weight: var(--weight-title); letter-spacing: -0.02em; line-height: 1.3; }
+.pj-navc__y { font-size: 13px; color: var(--pj-ink-muted); }
+
+.pj-contact {
+  padding: 20px var(--pj-pad) calc(24px + env(safe-area-inset-bottom));
+  display: flex; flex-wrap: wrap; gap: 12px 20px;
+  align-items: center; justify-content: space-between;
+}
+.pj-contact p { margin: 0; font-size: 17px; font-weight: var(--weight-lede); max-width: 28ch; }
+/* Sur Surface, un bouton plein Suie se fondrait dans le fond. Il s'inverse :
+   parchemin plein, texte Suie. Le rapport de force est conservé, c'est
+   toujours la seule zone pleine de la carte. */
+.pj-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  border-radius: 6px;
+  border: 1px solid var(--color-parchment-canvas);
+  background: var(--color-parchment-canvas);
+  color: var(--color-suie);
+  font-family: inherit; font-size: 15px; font-weight: var(--weight-title);
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 110ms var(--ease-out);
+}
+.pj-btn:active { transform: scale(0.98); }
+.pj-btn svg { color: var(--color-ember-ink); }
+@media (hover: hover) and (pointer: fine) { .pj-btn:hover { background: var(--color-papier); } }
+
+/* ---------------------------------------------------------------------------
+   ORDINATEUR. Même objet, posé au centre : il n'y a pas de bas d'écran vers
+   lequel glisser, il ne monte donc pas, il s'approche.
+   ------------------------------------------------------------------------ */
+@media (min-width: 861px) {
+  .pj-grab { display: none; }
+  .pj-topbar { touch-action: auto; }
+
+  /* Le fond ne recule presque pas, mais il doit tenir la même durée que la
+     carte : à 420ms il finissait de bouger après elle, et on voyait deux
+     objets au lieu d'un. */
+  main { transition: transform 200ms var(--ease-out), filter 200ms var(--ease-out); }
+  body[data-projet] main { transform: scale(0.985); transition-duration: 260ms; }
+
+  .pj-scrim {
+    background: rgba(23, 22, 19, 0.34);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    transition-duration: 200ms;
+  }
+  body[data-projet] .pj-scrim { transition-duration: 260ms; }
+
+  .pj-sheet {
+    left: 50%; top: 50%; right: auto; bottom: auto;
+    width: min(960px, calc(100vw - 96px));
+    height: min(88dvh, 940px);
+    border-radius: var(--pj-radius);
+    box-shadow: var(--shadow-xl), 0 24px 64px rgba(23, 22, 19, 0.22);
+    transform: translate(-50%, -50%) scale(0.97);
+    opacity: 0;
+    transition: transform 200ms var(--ease-out), opacity 160ms var(--ease-out);
+  }
+  /* 260ms pour s'approcher, 200ms pour partir. L'opacité reste un cran sous
+     le mouvement dans les deux sens : la carte est déjà pleinement visible
+     quand elle finit de se poser, elle ne clignote pas. */
+  body[data-projet] .pj-sheet {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    transition-duration: 260ms, 200ms;
+  }
+
+  .pj-hero { padding: 96px 48px 72px; }
+  .pj-title { font-size: 66px; max-width: 13ch; }
+  .pj-chapo { font-size: 22px; max-width: 48ch; }
+  .pj-body { padding-inline: 48px; }
+  .pj-media .pj-cap { padding-inline: 48px; }
+  .pj-chap__h { font-size: 26px; letter-spacing: -0.024em; }
+  .pj-callout p { font-size: 26px; letter-spacing: -0.024em; }
+  .pj-result { padding: 44px 48px 48px; }
+  .pj-fig__n { font-size: 44px; letter-spacing: -0.032em; }
+  .pj-navs { grid-template-columns: 1fr 1fr; }
+  .pj-navs[data-single] { grid-template-columns: 1fr; }
+  .pj-navc + .pj-navc { border-left: 1px solid var(--pj-rule); }
+}
+
+/* Le titre en colonne de gauche, collé pendant son chapitre. Sous cette
+   largeur la colonne mangerait la mesure du texte. */
+@media (min-width: 900px) {
+  .pj-chap {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 0 40px;
+  }
+  .pj-chap__head { grid-column: 1; }
+  .pj-chap__b { grid-column: 2; }
+  .pj-chap__h { position: sticky; top: 78px; margin-bottom: 0; }
+  .pj-result .pj-chap__h { position: static; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* !important pour passer devant les durées que le geste écrit en style en
+     ligne. Le tirage lui-même reste actif : suivre le doigt est de la
+     manipulation directe, pas une animation. Seul le trajet de sortie, qui se
+     joue tout seul, est supprimé. */
+  .pj-sheet, .pj-scrim, main { transition-duration: 1ms !important; }
+  .pj-visual__img { transition: filter 420ms linear; transform: none !important; }
+  .pj-media[data-playing] .pj-visual__img { animation: none; }
+  .pj-navc__a, .pj-close, .pj-btn { transition-property: background-color, color, opacity; }
+}
 </style>
 </head>
 
@@ -1162,6 +1696,25 @@ a { color: inherit; }
   </section>
 </main>
 
+<!-- ===========================================================================
+     PAGE PROJET. La coquille seule : l'en-tête, la croix, et un conteneur que
+     le script remplit. Hors de main, qui recule et se floute derrière elle.
+     ======================================================================== -->
+<div class="pj-scrim" id="pj-scrim" aria-hidden="true"></div>
+
+<section class="pj-sheet" id="pj-sheet" role="dialog" aria-modal="true"
+         aria-labelledby="pj-titre" inert>
+  <div class="pj-grab" aria-hidden="true"></div>
+  <button class="pj-close" id="pj-close" type="button"
+          aria-label="Fermer et revenir aux projets">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
+  <div class="pj-scroll" id="pj-scroll"></div>
+</section>
+
 <script src="assets/dust.js"></script>
 
 <script>
@@ -1190,6 +1743,22 @@ function poserAncre(url) {
 }
 
 const onScroll = [];
+
+/* La liste des projets. Hors des deux modules qui la lisent, la section
+   Projets et la page projet : c'est la donnée de la page, pas celle d'un
+   écran. */
+const PROJETS = [
+  { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
+    a: '#fff0c2', b: '#fa520f', c: '#c04408' },
+  { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
+    a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
+  { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
+    a: '#fff0c2', b: '#fcb07a', c: '#171613' },
+  { date: '2021', nom: 'Cadence', theme: 'Design system',
+    a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
+  { date: '2020', nom: 'Halo', theme: 'Application mobile',
+    a: '#fcb07a', b: '#fa520f', c: '#171613' }
+];
 
 /* ==========================================================================
    Ancre Projets
@@ -1448,19 +2017,6 @@ const onScroll = [];
   const section = document.getElementById('projets');
   const list = document.getElementById('projets-list');
   if (!section || !list) return;
-
-  const PROJETS = [
-    { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
-      a: '#fff0c2', b: '#fa520f', c: '#c04408' },
-    { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
-      a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
-    { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
-      a: '#fff0c2', b: '#fcb07a', c: '#171613' },
-    { date: '2021', nom: 'Cadence', theme: 'Design system',
-      a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
-    { date: '2020', nom: 'Halo', theme: 'Application mobile',
-      a: '#fcb07a', b: '#fa520f', c: '#171613' }
-  ];
 
   /* Les valeurs lues ici sont écrites en dur dans la feuille de style, sans
      calc() : une propriété personnalisée n'est pas résolue à la lecture. */
@@ -1840,7 +2396,13 @@ const onScroll = [];
     if (!row) return;
     if (performance.now() - lastScrollAt < 120) return;   /* inhibition du tap */
     const i = +row.dataset.index;
-    if (i === netIndex) { track('clic_projet_net'); return; }
+    if (i === netIndex) {
+      track('clic_projet_net');
+      /* Les quatre autres projets sont des exemples en attente de contenu :
+         leur ligne reste cliquable, elle n'ouvre simplement rien. */
+      pageProjet.ouvrir(i, row);
+      return;
+    }
     claim(row);
   });
 
@@ -1874,6 +2436,508 @@ const onScroll = [];
   const m = /^#projet-(\d+)$/.exec(location.hash);
   const i = m ? +m[1] - 1 : -1;
   if (i >= 0 && i < rows.length) centerRow(i, false);
+})();
+
+/* ==========================================================================
+   PAGE PROJET, la carte superposée
+
+   La carte se pose sur la page, elle ne la remplace pas. Le fond recule et
+   s'assombrit, le voile monte, la feuille arrive. Tout ce qui est calé sur la
+   feuille avance avec elle, image par image pendant le geste : attendre la
+   fin du geste pour les jouer ferait deux évènements là où il n'y en a qu'un.
+
+   Un seul projet est écrit pour l'instant, Audience Planning. Les quatre
+   autres sont des exemples qui vont changer : leur ligne reste cliquable dans
+   la liste, elle n'ouvre simplement rien. Le jour où ils sont écrits, il n'y
+   a qu'à les ajouter à PROJETS_CONTENU et le pied de carte retrouve ses deux
+   voisins.
+   ======================================================================= */
+const pageProjet = (() => {
+  const sheet = document.getElementById('pj-sheet');
+  const scrim = document.getElementById('pj-scrim');
+  const scroll = document.getElementById('pj-scroll');
+  const btnClose = document.getElementById('pj-close');
+  if (!sheet) return { ouvrir: () => false, aDuContenu: () => false };
+
+  /* Le contenu, indexé sur la position dans PROJETS. Les longueurs sont
+     celles de la spec : chapô 36 mots, contexte 56, enjeu 58, démarche 196,
+     résultat 63. Un gabarit calé sur du texte court ment toujours. */
+  const PROJETS_CONTENU = {
+    0: {
+      chapo: "Le ciblage média d'Australie.GAD vivait dans un tableur de quarante onglets. J'ai conçu l'outil qui l'a remplacé : onze jours de paramétrage ramenés à deux, six marchés basculés en trois mois sans retour en arrière.",
+      client: 'Australie.GAD',
+      media: { cap: "Le produit en 40 secondes, de la saisie d'un plan à l'arbitrage." },
+      blocs: [
+        { h: 'Contexte', p: [
+          "Australie.GAD vend de l'espace média à six marchés. Chaque plan d'audience se construisait dans un tableur partagé de quarante onglets, dupliqué à chaque campagne.",
+          "Les équipes locales n'avaient aucune visibilité sur les inventaires déjà réservés ailleurs : deux ventes sur dix se chevauchaient, et la direction commerciale arbitrait à la main, après coup."
+        ]},
+        /* L'objectif tient en une phrase ou il n'est pas un objectif. Le
+           périmètre reste dessous, en petit : il répond à l'autre question du
+           recruteur, celle de ce qui n'était pas de toi. */
+        { h: 'Enjeu',
+          callout: "Diviser par trois le temps de paramétrage d'un plan, sans perdre les équipes qui maîtrisaient déjà le tableur.",
+          perim: "Recherche utilisateur, modèle d'information, parcours de création, design system. La facturation restait hors champ." },
+        { h: 'Démarche', p: [
+          "J'ai commencé par regarder travailler six planneurs, deux par marché, sur leurs propres campagnes. Le tableur n'était pas le problème : la colonne de calcul l'était. Personne ne la lisait, tout le monde la recopiait.",
+          "Première décision, garder la grille. Un outil qui aurait remplacé le tableau par un formulaire aurait été rejeté. J'ai conçu une grille éditable qui reprend les gestes du tableur : sélection multiple, copier-coller, remplissage vers le bas.",
+          "Deuxième décision, sortir la disponibilité du calcul. Chaque ligne d'inventaire porte un état, libre, réservé ailleurs, en conflit, affiché pendant la saisie plutôt que dans un rapport de fin. Le conflit devient une information, pas une sanction.",
+          "Troisième décision, ne pas bloquer un plan en conflit. Un blocage aurait poussé les équipes à revenir au tableur pour contourner l'outil. Le plan part avec son conflit visible et remonte à la direction commerciale dans une file dédiée.",
+          "Le reste a été tranché sur un prototype cliquable, testé trois fois à trois semaines d'intervalle, sur des campagnes réelles."
+        ]},
+        { h: 'Résultat', result: true, figs: [
+          { n: '11 j à 2 j', l: "Paramétrage d'un plan" },
+          { n: '19 % à 4 %', l: 'Ventes en chevauchement' },
+          { n: '6 / 6', l: 'Marchés basculés en 3 mois' }
+        ], p: [
+          "Les six marchés ont basculé entre mars et juillet 2024, sans retour au tableur. La grille éditable est reprise depuis par deux autres outils internes du groupe."
+        ]}
+      ]
+    }
+  };
+
+  const main = document.querySelector('main');
+  const fond = [main, document.getElementById('site-header')].filter(Boolean);
+
+  let courant = -1;
+  let declencheur = null;
+
+  const aDuContenu = (i) => Object.prototype.hasOwnProperty.call(PROJETS_CONTENU, i);
+
+  /* ------------------------------------------------------------------------
+     Rendu. Même visuel de substitution que la liste, mêmes trois couleurs :
+     la vignette qu'on vient de cliquer et le média d'ouverture doivent être
+     reconnaissables l'un dans l'autre.
+     --------------------------------------------------------------------- */
+  function visuel(p, id, cap) {
+    return `
+      <div class="pj-visual" data-loading>
+        <svg class="pj-visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
+             role="img" aria-label="${cap}">
+          <defs>
+            <linearGradient id="${id}" x1="0" y1="0" x2="0.4" y2="1">
+              <stop offset="0%" stop-color="${p.a}"/>
+              <stop offset="60%" stop-color="${p.b}"/>
+              <stop offset="100%" stop-color="${p.c}"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill="url(#${id})"/>
+          <path d="M0 100 L34 58 L58 78 L92 40 L118 66 L160 24 L160 100 Z"
+                fill="${p.c}" opacity="0.22"/>
+          <circle cx="122" cy="26" r="11" fill="${p.a}" opacity="0.7"/>
+        </svg>
+      </div>`;
+  }
+
+  function chapitre(b) {
+    const figs = b.figs ? `<ul class="pj-figs">${b.figs.map((f) =>
+      `<li><span class="pj-fig__n">${f.n}</span><span class="pj-fig__l">${f.l}</span></li>`
+    ).join('')}</ul>` : '';
+    const callout = b.callout ? `
+      <div class="pj-callout">
+        <p>«&#8239;${b.callout}&#8239;»</p>
+        <span class="pj-callout__perim"><b>Périmètre confié :</b> ${b.perim}</span>
+      </div>` : '';
+    return `
+      <section class="pj-chap">
+        <div class="pj-chap__head"><h2 class="pj-chap__h">${b.h}</h2></div>
+        <div class="pj-chap__b">
+          ${callout}
+          ${figs}
+          ${(b.p || []).map((t) => `<p>${t}</p>`).join('')}
+        </div>
+      </section>`;
+  }
+
+  /* Les voisins, dans l'ordre de la liste : précédent égale plus récent. Un
+     voisin dont le contenu n'est pas écrit n'est pas proposé. Quand il n'y a
+     aucun voisin, la carte unique renvoie à la liste plutôt que de laisser un
+     pied de carte vide. */
+  function pied(i) {
+    const prev = aDuContenu(i - 1) ? i - 1 : -1;
+    const next = aDuContenu(i + 1) ? i + 1 : -1;
+    const fleche = (droite) => `<svg class="pj-navc__a" width="14" height="14" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">${droite
+          ? '<path d="M4 12h15"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/>'
+          : '<path d="M20 12H5"/><path d="m11.5 5.5-6.5 6.5 6.5 6.5"/>'}</svg>`;
+
+    if (prev < 0 && next < 0) {
+      return `<div class="pj-navs" data-single>
+        <a class="pj-navc pj-navc--prev" href="#projets" data-nav="liste">
+          <span class="pj-navc__k">${fleche(false)} Tous les projets</span>
+          <span class="pj-navc__t">Revenir à la liste</span>
+          <span class="pj-navc__y">${PROJETS.length} projets</span>
+        </a></div>`;
+    }
+    const carte = (j, droite, mot) => {
+      if (j < 0) return '';
+      const p = PROJETS[j];
+      return `<a class="pj-navc pj-navc--${droite ? 'next' : 'prev'}" href="#projet-${j + 1}" data-nav="${j}">
+        <span class="pj-navc__k">${fleche(droite)} Projet ${mot}</span>
+        <span class="pj-navc__t">${p.nom}</span>
+        <span class="pj-navc__y">${p.date}</span></a>`;
+    };
+    return `<div class="pj-navs">${carte(prev, false, 'précédent')}${carte(next, true, 'suivant')}</div>`;
+  }
+
+  function rendre(i) {
+    const p = PROJETS[i];
+    const c = PROJETS_CONTENU[i];
+    const corps = c.blocs.filter((b) => !b.result);
+    const resultat = c.blocs.find((b) => b.result);
+
+    scroll.innerHTML = `
+      <div class="pj-topbar"><p class="pj-topbar__t">${p.nom}</p></div>
+
+      <header class="pj-hero">
+        <h1 class="pj-title" id="pj-titre">${p.nom}</h1>
+        <p class="pj-chapo">${c.chapo}</p>
+        <ul class="pj-meta"><li>${c.client}</li><li>${p.date}</li></ul>
+        <svg class="pj-hint" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14"/><path d="m5.5 13 6.5 6.5 6.5-6.5"/>
+        </svg>
+      </header>
+
+      <figure class="pj-media" id="pj-media">
+        ${visuel(p, 'pj-g-media', c.media.cap)}
+        <button class="pj-play" id="pj-play" type="button"
+                aria-label="Lire la présentation du projet">
+          <span class="pj-play__d">
+            <svg class="pj-play__play" width="20" height="20" viewBox="0 0 24 24"
+                 fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+            <svg class="pj-play__pause" width="18" height="18" viewBox="0 0 24 24"
+                 fill="currentColor" aria-hidden="true">
+              <rect x="6" y="5" width="4" height="14" rx="1"/>
+              <rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </span>
+        </button>
+        <figcaption class="pj-cap">${c.media.cap}</figcaption>
+      </figure>
+
+      <div class="pj-body">${corps.map(chapitre).join('')}</div>
+      <div class="pj-result">${chapitre(resultat)}</div>
+
+      <footer class="pj-foot">
+        ${pied(i)}
+        <div class="pj-contact">
+          <p>Ce projet ressemble au vôtre ?</p>
+          <a class="pj-btn" href="mailto:${MAIL}">Écrire à Mathieu
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12h15"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+          </a>
+        </div>
+      </footer>`;
+
+    /* Le texte est déjà là, les visuels arrivent après : place réservée par
+       le ratio, flou qui se lève, aucun saut de mise en page. */
+    scroll.querySelectorAll('.pj-visual[data-loading]').forEach((v, k) => {
+      setTimeout(() => v.removeAttribute('data-loading'), 300 + k * 420);
+    });
+
+    const media = document.getElementById('pj-media');
+    const play = document.getElementById('pj-play');
+    play.addEventListener('click', () => {
+      const on = media.toggleAttribute('data-playing');
+      play.setAttribute('aria-label', on ? 'Mettre en pause' : 'Lire la présentation du projet');
+    });
+
+    scroll.scrollTop = 0;
+    scroll.removeAttribute('data-scrolled');
+    scroll.removeAttribute('data-moved');
+  }
+
+  /* ------------------------------------------------------------------------
+     Ouverture et fermeture. Le défilement de la page est gelé pendant la
+     lecture : overflow sur la racine, qui garde la position au pixel, et la
+     largeur de la barre de défilement rendue en marge pour que la page ne
+     saute pas d'un cran vers la droite.
+     --------------------------------------------------------------------- */
+  function ouvrir(i, trigger) {
+    if (!aDuContenu(i)) return false;
+    if (courant !== i) { courant = i; rendre(i); }
+    declencheur = trigger || null;
+
+    /* Une réouverture immédiate ne doit pas hériter de la durée qu'un geste
+       venait d'imposer à la sortie. */
+    effacerStylesGeste();
+
+    const barre = window.innerWidth - document.documentElement.clientWidth;
+    document.documentElement.style.overflow = 'hidden';
+    if (barre > 0) document.documentElement.style.paddingRight = barre + 'px';
+
+    clearTimeout(sortie);
+    document.body.removeAttribute('data-pj-sortie');
+    document.body.setAttribute('data-projet', '');
+    sheet.removeAttribute('inert');
+    /* La page derrière sort de l'ordre de tabulation : sans cela, Tab sort de
+       la carte par le bas et va lire une liste qu'on ne voit plus. */
+    fond.forEach((n) => n.setAttribute('inert', ''));
+    poserAncre('#projet-' + (i + 1));
+    btnClose.focus({ preventScroll: true });
+    track('ouvre_projet');
+    return true;
+  }
+
+  /* Le temps que main revienne à l'échelle 1. Volontairement un cran au-delà
+     des 300ms de la feuille, pour couvrir aussi la dernière image. */
+  const SORTIE_FOND_MS = 340;
+  let sortie = 0;
+
+  function fermer() {
+    if (!document.body.hasAttribute('data-projet')) return;
+    document.body.removeAttribute('data-projet');
+    document.body.setAttribute('data-pj-sortie', '');
+    clearTimeout(sortie);
+    sortie = setTimeout(() => document.body.removeAttribute('data-pj-sortie'), SORTIE_FOND_MS);
+    sheet.setAttribute('inert', '');
+    fond.forEach((n) => n.removeAttribute('inert'));
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.paddingRight = '';
+    poserAncre('#projets');
+    if (declencheur && declencheur.isConnected) declencheur.focus({ preventScroll: true });
+  }
+
+  btnClose.addEventListener('click', () => fermer());
+  scrim.addEventListener('click', () => fermer());
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.hasAttribute('data-projet')) fermer();
+  });
+
+  /* Le pied de carte. Passer au voisin ne change pas de page, il remplace le
+     contenu de la carte : la page reste où elle est, derrière. */
+  let verrou = false;
+  scroll.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-nav]');
+    if (!c) return;
+    e.preventDefault();
+    if (c.dataset.nav === 'liste') { fermer(); return; }
+    if (verrou) return;
+    verrou = true;
+    setTimeout(() => {
+      verrou = false;
+      const j = +c.dataset.nav;
+      courant = j;
+      rendre(j);
+      poserAncre('#projet-' + (j + 1));
+    }, 180);
+  });
+
+  /* Filet de la barre interne, révélée dès que le titre part en haut. */
+  scroll.addEventListener('scroll', () => {
+    const fin = scroll.querySelector('.pj-hero .pj-meta');
+    const seuil = fin ? fin.offsetTop + fin.offsetHeight - 62 : 220;
+    scroll.toggleAttribute('data-scrolled', scroll.scrollTop > seuil);
+    scroll.toggleAttribute('data-moved', scroll.scrollTop > 12);
+  }, { passive: true });
+
+  /* ========================================================================
+     LE GESTE, téléphone seulement. Repousser la feuille vers le bas.
+
+     Ce que le geste doit prouver : la carte est un objet posé sur la page. Un
+     objet se pousse, il suit la main au pixel, il résiste quand on le force
+     contre sa butée, et il garde la vitesse qu'on lui a donnée quand on le
+     lâche. Le voile et le recul du fond avancent avec lui image par image.
+
+     Pointer Events et non Touch : le même code sert la souris et le doigt.
+     ===================================================================== */
+  /* Les valeurs de l'état ouvert du fond, redites ici parce que le geste doit
+     interpoler entre elles et l'état fermé sans relire le CSS. À garder
+     synchronisées avec body[data-projet] main. */
+  const FOND_SCALE = 0.94;
+  const FOND_SHIFT = 12;
+  const FOND_DIM = 0.94;
+
+  /* Un quart de la hauteur. Plus bas, on fermerait en lisant ; plus haut, il
+     faudrait traverser l'écran pour une action qu'on veut expédiée. */
+  const RENVOI_RATIO = 0.25;
+  /* Lâchée en mouvement, la feuille part sans avoir fait la distance.
+     0,11 px/ms mesurés sur les 100 dernières millisecondes : la question
+     n'est pas « le doigt a-t-il bougé » mais « partait-il encore ». */
+  const VITESSE_RENVOI = 0.11;
+  const RENVOI_MIN = 40;
+  /* Résistance vers le haut. À 0,5 le premier pixel suit à moitié et le
+     centième ne suit presque plus : la butée se sent avant de se heurter. Une
+     butée franche, elle, se lit comme un bug. */
+  const CAOUTCHOUC = 0.5;
+  /* Le retour quand le geste est annulé. Court et en ease-out fort : un geste
+     annulé ne se raconte pas, il s'efface. */
+  const RETOUR_MS = 320;
+  /* Bornes de la sortie. 300ms est la fermeture au clic : une poussée lente
+     ne doit pas finir plus lentement qu'un clic. 160ms est le plancher sous
+     lequel la sortie n'est plus un mouvement mais une disparition. */
+  const SORTIE_MIN = 160;
+  const SORTIE_MAX = 300;
+
+  let pointeur = null;      /* pointeur suivi, verrou multi-touch */
+  let tire = false;         /* le geste a pris la main */
+  let depuisPoignee = false;
+  let y0 = 0, x0 = 0, hauteur = 1, dernierY = 0;
+  let mesures = [];
+  let nettoyage = 0;
+  let avalerClic = false;
+
+  const borne = (v, a, b) => Math.max(a, Math.min(b, v));
+  /* Formule de résistance d'Apple : linéaire au départ, asymptotique ensuite.
+     La feuille ne se bloque jamais, elle devient lourde. */
+  const caoutchouc = (x, dim) => (x * dim * CAOUTCHOUC) / (dim + CAOUTCHOUC * x);
+
+  function mesurer(y, t) {
+    mesures.push({ y, t });
+    while (mesures.length > 2 && t - mesures[0].t > 100) mesures.shift();
+  }
+  function vitesse() {
+    if (mesures.length < 2) return 0;
+    const a = mesures[0], b = mesures[mesures.length - 1];
+    return b.t > a.t ? (b.y - a.y) / (b.t - a.t) : 0;
+  }
+
+  /* Une seule fonction de rendu pour les trois éléments. Chaque transform est
+     posé sur son élément : passer par une propriété personnalisée sur un
+     parent recalculerait le style de tout le contenu à chaque image. */
+  function image(y) {
+    dernierY = y;
+    const p = borne(y / hauteur, 0, 1);
+    sheet.style.transform = `translateY(${y}px)`;
+    scrim.style.opacity = String(1 - p);
+    main.style.transform =
+      `scale(${FOND_SCALE + (1 - FOND_SCALE) * p}) translateY(${FOND_SHIFT * (1 - p)}px)`;
+    main.style.filter = `brightness(${FOND_DIM + (1 - FOND_DIM) * p})`;
+  }
+
+  /* Rend la main au CSS : on efface les valeurs du geste et on impose la
+     durée du trajet restant, que l'état d'arrivée soit l'ouvert ou le fermé.
+     La transition repart de la position atteinte au doigt, donc le geste
+     reste interruptible et réversible jusqu'au dernier moment. */
+  function relacher(ms, easing) {
+    sheet.style.transition = `transform ${ms}ms ${easing}`;
+    main.style.transition = `transform ${ms}ms ${easing}, filter ${ms}ms ${easing}`;
+    scrim.style.transition = `opacity ${ms}ms var(--ease-out)`;
+    sheet.style.transform = '';
+    main.style.transform = '';
+    main.style.filter = '';
+    scrim.style.opacity = '';
+    clearTimeout(nettoyage);
+    nettoyage = setTimeout(effacerStylesGeste, ms + 60);
+  }
+
+  /* Au repos, les durées et les états appartiennent au CSS, pas au script. */
+  function effacerStylesGeste() {
+    clearTimeout(nettoyage);
+    sheet.style.transition = '';
+    main.style.transition = '';
+    scrim.style.transition = '';
+    sheet.style.transform = '';
+    main.style.transform = '';
+    main.style.filter = '';
+    scrim.style.opacity = '';
+  }
+
+  function arreter() {
+    if (pointeur !== null && sheet.hasPointerCapture(pointeur)) sheet.releasePointerCapture(pointeur);
+    pointeur = null;
+    tire = false;
+    document.body.removeAttribute('data-pj-drag');
+  }
+
+  sheet.addEventListener('pointerdown', (e) => {
+    if (window.innerWidth > 860) return;           /* la fenêtre centrée ne se tire pas */
+    if (!document.body.hasAttribute('data-projet')) return;
+    if (pointeur !== null) return;                 /* un doigt de plus ferait sauter la feuille */
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest('button, a')) return;     /* la croix et le pied restent des cibles */
+    avalerClic = false;
+    pointeur = e.pointerId;
+    y0 = e.clientY;
+    x0 = e.clientX;
+    depuisPoignee = !e.target.closest('.pj-scroll') || !!e.target.closest('.pj-grab, .pj-topbar');
+    mesures = [];
+    mesurer(e.clientY, e.timeStamp);
+  });
+
+  addEventListener('pointermove', (e) => {
+    if (e.pointerId !== pointeur) return;
+    const dy = e.clientY - y0;
+    const dx = e.clientX - x0;
+    mesurer(e.clientY, e.timeStamp);
+
+    if (!tire) {
+      /* 4px de marge : sous ce seuil c'est un clic qui tremble, et on ne vole
+         pas un clic. */
+      if (Math.abs(dy) < 4 && Math.abs(dx) < 4) return;
+      if (Math.abs(dx) > Math.abs(dy)) { arreter(); return; }
+      /* L'arbitrage avec le défilement. Contenu défilé : le doigt lit.
+         Contenu en haut et doigt qui descend : il n'y a plus rien à remonter,
+         le geste passe à la feuille. */
+      if (!depuisPoignee && !(scroll.scrollTop <= 0 && dy > 0)) { arreter(); return; }
+
+      tire = true;
+      document.body.setAttribute('data-pj-drag', '');
+      sheet.setPointerCapture(pointeur);   /* le geste continue hors de la feuille */
+      hauteur = sheet.getBoundingClientRect().height;
+      sheet.style.transition = 'none';
+      main.style.transition = 'none';
+      scrim.style.transition = 'none';
+      clearTimeout(nettoyage);
+    }
+
+    e.preventDefault();
+    image(dy > 0 ? dy : -caoutchouc(-dy, hauteur));
+  }, { passive: false });
+
+  addEventListener('pointerup', (e) => {
+    if (e.pointerId !== pointeur) return;
+    if (!tire) { arreter(); return; }
+    const v = vitesse();
+    const y = dernierY;
+    const lance = v > VITESSE_RENVOI && y > RENVOI_MIN;
+    arreter();
+    avalerClic = true;
+
+    if (y > hauteur * RENVOI_RATIO || lance) {
+      /* La vitesse du geste continue dans la sortie : au coup sec elle est
+         courte, à la poussée lente elle retombe sur la durée du clic. La
+         feuille ne repart jamais de zéro après avoir été lancée. */
+      const reste = Math.max(hauteur - y, 0);
+      const ms = borne(v > 0 ? reste / v : SORTIE_MAX, SORTIE_MIN, SORTIE_MAX);
+      fermer();
+      relacher(ms, 'var(--pj-ease-drawer)');
+    } else {
+      relacher(RETOUR_MS, 'var(--ease-out)');
+    }
+  });
+
+  /* Annulation système, le navigateur reprend le pointeur : la feuille
+     revient, elle ne reste pas à mi-chemin. */
+  addEventListener('pointercancel', (e) => {
+    if (e.pointerId !== pointeur) return;
+    const etait = tire;
+    arreter();
+    if (etait) relacher(RETOUR_MS, 'var(--ease-out)');
+  });
+
+  /* Un geste qui se termine sur un lien ne doit pas le suivre. Le clic arrive
+     après le pointerup, donc le drapeau survit au geste juste le temps de
+     l'avaler. */
+  sheet.addEventListener('click', (e) => {
+    if (!avalerClic) return;
+    avalerClic = false;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  /* US6, lien profond vers un projet. Ce module est déclaré après celui de la
+     section Projets, qui a donc déjà calé la liste sur le bon projet quand on
+     arrive ici : la page est en place avant qu'on gèle son défilement. Une
+     ancre qui ne désigne aucun projet écrit ne fait rien, la liste reste la
+     page. */
+  const ancre = /^#projet-(\d+)$/.exec(location.hash);
+  if (ancre) ouvrir(+ancre[1] - 1, null);
+
+  return { ouvrir, aDuContenu };
 })();
 </script>
 </body>
