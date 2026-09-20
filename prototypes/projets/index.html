@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Projets, trois anatomies de ligne</title>
+
+<!-- ===========================================================================
+     PROTOTYPE JETABLE. Ne pas reprendre tel quel en production.
+
+     Question tranchee : l'anatomie d'une ligne projet. Le wireframe de la spec
+     (prototypes/Projets.png) pose l'ordre date, nom, theme, visuel mais laisse
+     ouvert ce qu'une ligne EST : une entree d'index, une affiche, ou un objet.
+     Les trois variantes repondent chacune differemment.
+
+     Tout le reste est identique dans les trois, pour etre jugeable en
+     conditions reelles : snap strict, flou par distance au centre, zoom lent
+     du visuel net, chargement en flou progressif, recentrage au premier clic,
+     ouverture depuis le visuel, degrade fixe vers Parcours, clavier,
+     prefers-reduced-motion.
+     ======================================================================== -->
+
+<style>
+/* ---------------------------------------------------------------------------
+   Police, General Sans variable. Les paliers 470 et 550 n'existent pas
+   en coupe statique, la variable est obligatoire.
+   ------------------------------------------------------------------------ */
+@font-face {
+  font-family: 'General Sans';
+  src: url('fonts/GeneralSans-Variable.woff2') format('woff2-variations'),
+       url('fonts/GeneralSans-Variable.woff')  format('woff-variations');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --color-parchment-canvas: #fffaeb;
+  --color-papier: #fffdf6;
+  --color-suie: #171613;
+  --color-ember: #fa520f;
+  --color-ember-ink: #c04408;
+  --color-soft-butter: #fff0c2;
+
+  --color-muted: rgba(23, 22, 19, 0.62);
+  --color-hairline: rgba(23, 22, 19, 0.12);
+  --color-border: rgba(23, 22, 19, 0.13);
+
+  --font-general: 'General Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --weight-title: 600;
+  --weight-lede: 550;
+  --weight-body: 470;
+
+  --page-max-width: 1200px;
+  --gutter: 48px;
+
+  --shadow-xl:
+    rgba(127, 99, 21, 0.12) -8px 16px 39px 0px,
+    rgba(127, 99, 21, 0.1) -33px 64px 72px 0px,
+    rgba(127, 99, 21, 0.06) -73px 144px 97px 0px,
+    rgba(127, 99, 21, 0.02) -130px 256px 115px 0px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Hauteur du degrade fixe. Elle sert deux fois : a dessiner le degrade,
+     et a remonter le centre optique de la liste d'autant de moitie, pour
+     qu'un projet net ne se cale jamais derriere l'orange. */
+  /* Les deux bouts de la liste ne sont pas symetriques. En haut, un fondu
+     court : les projets sortent nets, la coupe est franche. En bas, une
+     longue rampe qui annonce l'ecran Parcours, entierement Ember.
+     Un fondu du haut aussi long que celui du bas ferait disparaitre les
+     projets dans une bouillie molle au lieu de les sortir du cadre.
+     Source : https://x.com/justvasi/status/2100608213892862112 */
+  --fade-top: 52px;
+  --halo-h: 140px;
+
+  /* La ligne de focus, ou se cale le haut du projet net. Elle est plus
+     basse que le fondu, et l'ecart des deux est ce qui fait depasser le
+     projet precedent : 72px de chevauchement, dont 52 sous le voile et
+     20 a nu. Ces 20px de visuel suffisent a dire qu'il y a quelque chose
+     au-dessus, et qu'on peut y aller. Sans eux le projet precedent sort
+     du cadre d'un coup et la liste semble commencer a son premier item
+     visible, ce qui est faux des qu'on a defile. */
+  --focus-top: 124px;
+
+  /* Le flou est une distance, il doit se mesurer a la taille de l'ecran.
+     8px sur 1440 de large et 8px sur 390 ne sont pas le meme geste. */
+  --blur-scale: 1;
+
+  /* La hauteur de ligne est constante a l'interieur d'un ecran donne, une
+     hauteur variable d'une ligne a l'autre rendrait le snap imprevisible.
+     Mais elle se deduit de la hauteur d'ecran, elle n'est pas un chiffre.
+
+     Pourquoi : le vide restant sous le dernier projet vaut exactement
+     100dvh - focus-top - 1,5 x row-h - halo-h. Avec une hauteur de ligne
+     figee, ce reste explose des que l'ecran s'allonge. Sur 800px de haut
+     et des lignes de 300, il vaut 86px et ne se voit pas. Sur un telephone
+     de 844px de haut avec des lignes de 204, il valait 326px, soit un
+     trou de la taille d'un projet entre le dernier et l'ancre Parcours.
+
+     On resout donc l'equation dans l'autre sens : on fixe ce reste a 86px
+     et on en deduit la hauteur de ligne. Sur 800px, la formule redonne
+     exactement les 300px d'avant.
+     Le plafond de 520px couvre les fenetres jusqu'a 1130px de haut. Au-dela
+     le reste recommence a grandir, lentement, et c'est le prix a payer pour
+     ne pas se retrouver avec des lignes de 700px sur un grand ecran. */
+  --row-h: clamp(
+    240px,
+    calc((100dvh - var(--focus-top) - var(--halo-h) - 86px) / 1.5),
+    520px
+  );
+}
+
+@media (max-width: 860px) {
+  :root { --gutter: 20px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--color-parchment-canvas);
+  color: var(--color-suie);
+  font-family: var(--font-general);
+  font-weight: var(--weight-body);
+  font-size: 17px;
+  line-height: 1.68;
+  letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;              /* la page ne defile pas, la section defile */
+}
+
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ===========================================================================
+   LA SECTION, un ecran complet. Elle defile a l'interieur, le degrade du bas
+   ne bouge jamais avec elle.
+   ======================================================================== */
+.section {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  /* Le projet net se cale haut, sur la ligne de focus, et non au centre.
+     C'est ce decalage qui donne au fondu du haut quelque chose a effacer,
+     et au projet precedent de quoi depasser.
+     Le recalage au clic vise la meme ligne, il n'y a donc qu'une seule
+     definition du point de focus dans tout le fichier. */
+  scroll-padding-top: var(--focus-top);
+  /* Une impulsion en butee ne doit ni faire rebondir la page derriere,
+     ni declencher le tirer pour recharger de mobile. */
+  overscroll-behavior-y: contain;
+  /* Le defilement programme est anime par le JS, pas par le navigateur :
+     scroll-behavior reste auto pour ne pas doubler les deux. */
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroller::-webkit-scrollbar { display: none; }
+
+/* Cas limite de la spec : fenetre trop courte pour une ligne entiere.
+   Sous ce seuil le snap strict est coupe, la liste redevient librement
+   defilable, le flou continue de se calculer par rapport au point de focus. */
+@media (max-height: 560px) {
+  .scroller { scroll-snap-type: none; }
+}
+
+/* En haut, la ligne de focus : le premier projet est deja en place au
+   chargement, rien ne le precede, et il tombe pile sur son point de calage.
+   En bas, la hauteur du halo, pas davantage. */
+.list {
+  position: relative;
+  padding-top: var(--focus-top);
+  /* De quoi amener le dernier projet a sa demi-ligne, jamais moins que le
+     halo. Le calcul peut devenir negatif sur une fenetre haute, d'ou max(). */
+  padding-bottom: max(
+    var(--halo-h),
+    calc(100dvh - var(--focus-top) - 1.5 * var(--row-h))
+  );
+}
+
+/* Le fondu du haut. Un voile de parchemin pose par-dessus, pas un
+   mask-image sur le scroller : celui-ci porte deja cinq filtres de flou,
+   lui ajouter un masque forcerait une couche de composition de plus pour
+   un resultat identique sur un fond plat. */
+.fade-top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--fade-top);
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(to bottom,
+    var(--color-parchment-canvas) 0%,
+    rgba(255, 250, 235, 0.90) 44%,
+    rgba(255, 250, 235, 0) 100%);
+}
+
+/* ===========================================================================
+   LA LIGNE, coque commune aux trois variantes.
+   Le flou et l'opacite de .row__inner sont ecrits par le script, voir
+   LA LOI DU FLOU plus bas.
+   ======================================================================== */
+.row {
+  position: relative;
+  height: var(--row-h);
+  scroll-snap-align: start;
+  /* Jamais deux lignes en une impulsion. Verdict au trackpad : garde.
+     Le cout est reel, une impulsion longue ne traverse plus la liste et il
+     faut cinq gestes pour voir cinq projets. Mais c'est exactement la these
+     de l'ecran, un seul sujet a la fois, et avec trois a six projets le
+     cout est borne. Sur une liste de trente, la reponse serait l'inverse. */
+  scroll-snap-stop: always;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* La loi du flou est ecrite par le JS directement sur cet element, en
+   filter et en opacity. Elle n'est plus calculee en CSS a partir d'une
+   custom property posee sur .row : ecrire une custom property sur la ligne
+   invalidait le style de tout son sous-arbre, grille, titre et SVG compris,
+   a chaque image. Voir le commentaire LA LOI DU FLOU dans le script. */
+.row__inner {
+  height: 100%;
+}
+
+/* Une seule situation ou le denettage est anime : le clic sur une ligne
+   floue. Le rayon de flou, lui, tombe d'un coup a zero, il n'est pas
+   interpole : animer un blur plein ecran pendant 160ms coute une dizaine de
+   rasterisations completes au moment precis ou le defilement demarre, et
+   c'est la seule frame du parcours qui ne peut pas se permettre de sauter.
+   L'opacite, gratuite pour le compositeur, porte la continuite du geste. */
+.row[data-claimed] .row__inner {
+  transition: opacity 120ms var(--ease-out);
+}
+
+.row__grid {
+  height: 100%;
+  display: grid;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Champs typographiques, communs.
+   ------------------------------------------------------------------------ */
+/* La date reste neutre. Elle avait ete teintee en Ember encre sur le
+   projet net : seul champ colore de tout l'ecran, elle formait un accent
+   isole que rien d'autre ne reprenait. Une couleur qui n'apparait qu'une
+   fois n'est pas un systeme, c'est une exception. */
+.f-date {
+  font-size: 13px;
+  font-weight: var(--weight-body);
+  letter-spacing: -0.004em;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.f-name {
+  margin: 0;
+  font-weight: var(--weight-title);
+}
+
+/* Le nom. Deux lignes maximum puis troncature : la hauteur de ligne ne
+   bouge pas, sinon le snap devient imprevisible.
+   Pas de soulignement du projet net. Le flou dit deja lequel est le sujet,
+   un trait en plus serait un second marqueur pour une seule information.
+   Consequence sur le point ouvert 4 de la spec : le retour visuel au premier
+   clic sur une ligne floue repose desormais sur le seul denettage immediat,
+   qui part avant que le defilement ne l'ait amenee au centre. */
+.f-name__u {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-decoration: 2px solid underline transparent;
+  text-underline-offset: 6px;
+  transition: text-decoration-color 150ms var(--ease-out);
+}
+
+/* Le survol ne concerne QUE le projet net : c'est le seul dont le clic
+   ouvre une page. Survoler un projet flou n'annonce rien, son clic ne fait
+   que le recentrer. Un survol qui promet la meme chose dans les deux cas
+   ment une fois sur deux.
+   Sous (hover: none) la regle ne s'applique pas du tout : la spec demande
+   qu'aucun mecanisme ne depende du survol sur mobile. */
+@media (hover: hover) and (pointer: fine) {
+  .row[data-net]:hover .f-name__u { text-decoration-color: var(--color-ember); }
+}
+/* Parite clavier : le focus visible dit la meme chose que le survol. */
+.row[data-net]:focus-visible .f-name__u { text-decoration-color: var(--color-ember); }
+
+.f-theme {
+  font-size: 17px;
+  font-weight: var(--weight-body);
+  letter-spacing: -0.008em;
+  color: var(--color-muted);
+}
+
+/* ---------------------------------------------------------------------------
+   Le visuel. Il porte deux choses : le zoom lent quand la ligne est nette,
+   et le flou de chargement progressif quand il n'est pas encore charge.
+   ------------------------------------------------------------------------ */
+.visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-soft-butter);
+  aspect-ratio: 16 / 10;
+  width: 100%;
+}
+.visual__img {
+  position: absolute;
+  inset: 0;
+  /* width et height explicites, et pas seulement inset: 0. Un SVG est un
+     element remplace : avec des dimensions auto il garde le ratio de son
+     viewBox et se contente de la largeur, en laissant le bas de la boite
+     vide. Invisible tant que la boite avait le meme ratio que le viewBox,
+     flagrant des que le visuel est passe en portrait sur telephone.
+     Le recadrage est fait par preserveAspectRatio="slice". */
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+}
+/* Chargement progressif. Tant que data-loading est la, l'image reste floue.
+   Si elle ne charge jamais, ce flou reste, plutot que de laisser un trou. */
+.visual[data-loading] .visual__img {
+  filter: blur(18px);
+  transform: scale(1.06);
+}
+.visual__img {
+  transition: filter 420ms var(--ease-out), transform 420ms var(--ease-out);
+}
+
+/* Le zoom lent ne boucle plus et ne repart plus en arriere. Une derive
+   infinie sur le visuel que le recruteur est en train de regarder est du
+   mouvement decoratif sur du contenu evalue, et le va-et-vient faisait
+   respirer l'image sans jamais rien dire. Ce qui reste a un sens, et un
+   seul : le projet net est vivant, les autres sont figes. Donc une seule
+   passe, en avant, qui se pose et s'arrete.
+   Amplitude ramenee de 9% a 4% : 9% sur un visuel de 320px, ce sont 29px
+   de derive, assez pour qu'on suive le mouvement au lieu de l'image.
+   Le delai de 420ms laisse d'abord finir le denettage de chargement, dont
+   la transition sur transform serait sinon ecrasee par l'animation. */
+@keyframes slow-zoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.04); }
+}
+.row[data-net] .visual:not([data-loading]) .visual__img {
+  animation: slow-zoom 12s linear 420ms forwards;
+}
+
+/* Le dernier projet ne monte pas jusqu'a la ligne de focus, il s'arrete a
+   mi-chemin, une demi-ligne plus bas.
+   Aller jusqu'au bout laissait un ecran entier de vide sous lui. S'arreter
+   au ras du halo, comme dans la version precedente, ne lui laissait que
+   64px de course : la difference entre l'avant-dernier net et le dernier
+   net devenait imperceptible, et cliquer l'avant-dernier ne produisait
+   aucun mouvement visible, donc aucune confirmation que le clic avait pris.
+   Une demi-ligne, soit 150px de course, se voit sans rouvrir le trou. */
+.row:last-of-type { scroll-margin-top: calc(var(--row-h) / 2); }
+
+/* ===========================================================================
+   ANATOMIE, REGISTRE
+   Une ligne est une entree d'index : quatre colonnes alignees d'une ligne a
+   l'autre, un filet au-dessus de chacune. Le nom prend le palier heading,
+   assez pour dominer sa ligne sans devenir une affiche. C'est la seule
+   lecture qui laisse balayer les dates en colonne.
+   ======================================================================== */
+.row__grid {
+  grid-template-columns: 96px minmax(0, 1fr) 200px 320px;
+  gap: 40px;
+  border-top: 1px solid var(--color-hairline);
+}
+/* Touche d'Ember 2 sur 3. Le filet au-dessus du projet net vire a l'Ember.
+   Un trait de 1px a 42% : assez pour poser un repere horizontal dans un
+   ecran qui n'en a aucun, trop peu pour devenir un second marqueur de focus
+   en concurrence avec le flou. */
+.row__grid { transition: border-top-color 220ms var(--ease-out); }
+.row[data-net] .row__grid { border-top-color: rgba(250, 82, 15, 0.42); }
+.row:first-of-type .row__grid,
+.row[data-net]:first-of-type .row__grid { border-top-color: transparent; }
+
+/* Sur large, les trois champs de gauche sont des colonnes de plein rang,
+   au meme titre que le visuel. Sur mobile, la pile reprend ses droits. */
+.stack { display: contents; }
+
+.f-name {
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: -0.032em;
+}
+
+/* ===========================================================================
+   MOBILE. Meme comportement, aucun mecanisme au survol.
+   Date, nom et theme s'empilent a gauche, le visuel reste a droite.
+   ======================================================================== */
+@media (max-width: 860px) {
+  /* La hauteur de ligne vient de la formule, elle n'est plus posee ici.
+     Sur un telephone de 844px elle donne 364px, contre 204px avant : c'est
+     ce qui ferme le trou sous le dernier projet.
+     Le visuel reste en 16/10, comme sur desktop : un format d'image qui
+     change d'un support a l'autre obligerait a recadrer chaque visuel deux
+     fois, et le meme projet ne se reconnaitrait pas d'un ecran a l'autre.
+     La ligne haute se paie donc en air autour du visuel, pas en recadrage. */
+
+  /* Les colonnes fixes de 96px et 200px n'ont plus de sens sous 860px :
+     date, nom et theme reforment une pile a gauche du visuel. */
+  .row__grid { grid-template-columns: minmax(0, 1fr) 46vw; gap: 18px; }
+  .stack { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .f-name { font-size: 28px; letter-spacing: -0.024em; }
+  .f-theme { font-size: 15px; }
+}
+
+/* ===========================================================================
+   LA SORTIE VERS PARCOURS, le halo, a cinq hauteurs.
+
+   Ce que le halo doit faire : annoncer que l'ecran suivant est entierement
+   Ember (voir prototypes/Parcours-1.png) sans manger l'ecran des projets.
+   C'est un panneau de direction, pas un decor. Il ne defile jamais.
+
+   Le mot est en Suie, jamais en Papier : #fffaeb sur #fa520f tombe a 2,9:1
+   et echoue AA. Suie sur un halo a 30% tient 12:1.
+   ======================================================================== */
+.outro {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--halo-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 24px;
+  pointer-events: none;
+}
+.outro__link {
+  pointer-events: auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 17px;
+  font-weight: var(--weight-title);
+  letter-spacing: -0.008em;
+  color: var(--color-suie);
+  text-decoration: none;
+}
+.outro__word {
+  text-decoration: 2px solid underline transparent;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 150ms ease;
+}
+.outro__link:hover .outro__word { text-decoration-color: currentColor; }
+/* Touche d'Ember 3 sur 3. La fleche de l'ancre, en Ember plein. C'est
+   l'emploi prevu par le systeme, l'Ember vit dans les remplissages et les
+   icones ; l'Ember encre est reserve au texte, et ce n'en est pas.
+   Le mot a cote reste en Suie, c'est lui qui porte la lisibilite. */
+.outro__arrow { color: var(--color-ember); transition: transform 220ms var(--ease-out); }
+.outro__link:hover .outro__arrow { transform: translateY(2px); }
+
+/* Rampe unique, 140px, plafond a 30%. Comparee a 260, 210, 170 et 110 :
+   en dessous de 140 la rampe redevient un bord et perd ce qui fait le halo,
+   au-dessus elle mord sur le projet suivant. */
+.outro {
+  background: linear-gradient(to top,
+    rgba(250, 82, 15, 0.30) 0%,
+    rgba(250, 82, 15, 0.18) 34%,
+    rgba(250, 82, 15, 0.07) 66%,
+    rgba(255, 250, 235, 0) 100%);
+}
+
+
+@media (max-width: 860px) {
+  :root {
+    --halo-h: 112px;
+    --fade-top: 36px;
+    --focus-top: 100px;
+    /* Le flou reste proportionnel a l'ecran, mais le facteur remonte a
+       0,75 : la rampe desktop a ete divisee par pres de trois, la couper
+       encore de moitie rendrait le flou invisible sur telephone.
+       0,75px au projet suivant, 2,25px au plafond. */
+    --blur-scale: 0.75;
+  }
+}
+
+/* ===========================================================================
+   PAGE PROJET SIMULEE. Le prototype la tient dans le meme document, donc la
+   transition depuis le visuel y est plus facile qu'en conditions reelles.
+   Voir la dependance d'architecture, point ouvert 1 de la spec.
+   ======================================================================== */
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--color-parchment-canvas);
+  overflow-y: auto;
+  display: none;
+}
+.page[data-open] { display: block; }
+.page__hero {
+  height: 46dvh;
+  min-height: 260px;
+  overflow: hidden;
+  position: relative;
+}
+.page__hero .visual { height: 100%; aspect-ratio: auto; border-radius: 0; }
+.page__body { padding-block: 48px 96px; }
+.page__date {
+  font-size: 13px; font-weight: var(--weight-title);
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--color-ember-ink); margin: 0 0 8px;
+}
+.page__title {
+  margin: 0 0 16px;
+  font-size: 52px; font-weight: var(--weight-title);
+  line-height: 1.06; letter-spacing: -0.034em;
+}
+.page__lede {
+  margin: 0 0 32px; max-width: 46ch;
+  font-size: 20px; font-weight: var(--weight-lede);
+  line-height: 1.5; letter-spacing: -0.016em;
+}
+.page__back {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px;
+  border: 1px solid var(--color-suie); border-radius: 6px;
+  background: none; color: var(--color-suie);
+  font-family: inherit; font-size: 15px; font-weight: var(--weight-title);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.page__back:hover { background: rgba(23, 22, 19, 0.06); }
+
+/* Repli, quand View Transitions n'est pas disponible : fondu court.
+   L'acces au contenu est identique. */
+@keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+.page[data-fade] { animation: page-fade 200ms var(--ease-out); }
+
+/* ---------------------------------------------------------------------------
+   LA TRANSITION D'OUVERTURE, reglee.
+   Sans ces regles le navigateur applique sa duree et sa courbe par defaut,
+   soit un fondu croise mou d'un quart de seconde que personne n'a choisi.
+
+   Ce qui voyage : le visuel, et lui seul, en 320ms sur la courbe maison.
+   Ce que devient le texte de la ligne : rien. Il ne voyage pas, il s'efface
+   en 140ms avec le reste de la liste. Faire voler le nom vers le titre de
+   la page obligerait a accorder deux tailles de type qui ne sont pas les
+   memes d'une variante a l'autre, et surtout a mettre deux sujets en
+   mouvement la ou le principe de l'ecran est qu'il n'y en a qu'un.
+   Le contenu de la page arrive ensuite, pas en meme temps : le visuel se
+   pose d'abord, le texte monte de 8px derriere lui.
+   ------------------------------------------------------------------------ */
+::view-transition-group(visuel) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(visuel),
+::view-transition-new(visuel) {
+  /* Les deux instantanes n'ont pas le meme format, 16/10 dans la liste et
+     pleine largeur dans la page. Sans cela ils s'etirent au lieu de se
+     recadrer, et la morph devient un ecrasement. */
+  height: 100%;
+  object-fit: cover;
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* Ce n'est pas un fondu croise, les deux plans ne se superposent
+     quasiment pas. Le plus-lighter par defaut eclaircirait le parchemin. */
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { animation: vt-out 140ms var(--ease-out) both; }
+::view-transition-new(root) { animation: vt-in 220ms var(--ease-out) 140ms both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in  { from { opacity: 0; transform: translateY(8px); } }
+
+/* ===========================================================================
+   ANIMATIONS REDUITES
+   Le zoom saute, les transitions de focus et d'ouverture deviennent
+   instantanees. Le flou reste : c'est une information, pas une animation.
+   ======================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .row[data-net] .visual .visual__img { animation: none; }
+  .visual__img,
+  .f-name__u,
+  .row__grid,
+  .outro__arrow { transition-duration: 1ms !important; }
+  /* Exception : le denettage garde ses 120ms. C'est le seul accuse de
+     reception du clic sur une ligne floue, le faire basculer d'un coup
+     reviendrait a ne rien repondre. */
+  .row[data-claimed] .row__inner { transition-duration: 120ms; }
+  .page[data-fade] { animation-duration: 1ms; }
+  /* Le recentrage et l'ouverture sont instantanes, cote script. Le flou,
+     lui, reste : c'est une information, pas une animation. */
+}
+
+/* ===========================================================================
+   PICKER DE PROTOTYPE, hors sujet de design, repris de l'accueil.
+   ======================================================================== */
+.proto-picker {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.82);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 8px 24px rgba(0, 0, 0, 0.24),
+    0 2px 6px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.proto-picker-item {
+  position: relative; display: flex; align-items: center;
+  height: 28px; padding: 0 12px; border: 0; border-radius: 999px;
+  background: transparent; color: rgba(255, 255, 255, 0.55);
+  font: inherit; cursor: pointer; transition: color 150ms ease-out;
+}
+.proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); }
+.proto-picker-item:active { transform: scale(0.97); }
+.proto-picker-item:focus-visible { outline: 2px solid rgba(255,255,255,0.4); outline-offset: 2px; }
+.proto-picker-item[data-active] { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255,255,255,0.12); }
+.proto-picker-replay { padding: 0 11px; font-size: 14px; }
+</style>
+</head>
+
+<body>
+
+<section class="section" id="section" aria-label="Projets">
+  <div class="scroller" id="scroller">
+    <div class="list" id="list">
+      <!-- les lignes sont injectees par le JS -->
+    </div>
+  </div>
+
+  <div class="fade-top" aria-hidden="true"></div>
+
+  <div class="outro">
+    <a class="outro__link" href="#parcours" id="outro-link">
+      <span class="outro__word">Parcours</span>
+      <svg class="outro__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 4v15"/><path d="m5.5 13 6.5 6.5 6.5-6.5"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- page projet simulee -->
+<div class="page" id="page" role="dialog" aria-modal="true" aria-labelledby="page-title">
+  <div class="page__hero" id="page-hero"></div>
+  <div class="page__body wrap">
+    <p class="page__date" id="page-date"></p>
+    <h1 class="page__title" id="page-title"></h1>
+    <p class="page__lede" id="page-lede"></p>
+    <button class="page__back" id="page-back">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 12H5"/><path d="m11.5 5.5-6.5 6.5 6.5 6.5"/>
+      </svg>
+      Retour aux projets
+    </button>
+  </div>
+</div>
+
+<nav class="proto-picker" aria-label="Commandes du prototype">
+  <button class="proto-picker-item proto-picker-replay" aria-label="Rejouer le chargement des visuels (R)">↻ Rejouer le chargement</button>
+</nav>
+
+<script>
+/* ==========================================================================
+   Donnees. Cinq projets, ordre antechronologique, dans la fourchette 3 a 6
+   de la spec. Chaque projet a un visuel : c'est une obligation d'edition,
+   pas une gentillesse d'affichage.
+   ======================================================================= */
+const PROJETS = [
+  { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
+    lede: "Refonte du parcours de ciblage pour les équipes média d'Australie.GAD.",
+    a: '#fff0c2', b: '#fa520f', c: '#c04408' },
+  { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
+    lede: "Onboarding partenaire ramené de onze jours à deux jours de mise en service.",
+    a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
+  { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
+    lede: "Catalogue unifié, adopté par 340 utilisateurs en six mois.",
+    a: '#fff0c2', b: '#fcb07a', c: '#171613' },
+  { date: '2021', nom: 'Cadence', theme: 'Design system',
+    lede: "Le système qui a remplacé onze bibliothèques de composants divergentes.",
+    a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
+  { date: '2020', nom: 'Halo', theme: 'Application mobile',
+    lede: "Une application de terrain pensée pour être utilisée avec des gants.",
+    a: '#fcb07a', b: '#fa520f', c: '#171613' }
+];
+
+const cssVar = n =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n));
+
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Visuel de substitution. Un degrade et une silhouette, pas une photo :
+   le prototype ne juge pas les images, il juge la place qu'elles prennent. */
+function visual(p, i) {
+  return `
+    <div class="visual" data-loading data-visual="${i}">
+      <svg class="visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
+           role="img" aria-label="Visuel du projet ${p.nom}">
+        <defs>
+          <linearGradient id="g${i}" x1="0" y1="0" x2="0.4" y2="1">
+            <stop offset="0%" stop-color="${p.a}"/>
+            <stop offset="60%" stop-color="${p.b}"/>
+            <stop offset="100%" stop-color="${p.c}"/>
+          </linearGradient>
+        </defs>
+        <rect width="160" height="100" fill="url(#g${i})"/>
+        <path d="M0 100 L34 58 L58 78 L92 40 L118 66 L160 24 L160 100 Z"
+              fill="${p.c}" opacity="0.22"/>
+        <circle cx="122" cy="26" r="11" fill="${p.a}" opacity="0.7"/>
+      </svg>
+    </div>`;
+}
+
+/* ==========================================================================
+   Les trois anatomies. Meme contenu, meme ordre de lecture, trois reponses
+   a la question "qu'est-ce qu'une ligne".
+   ======================================================================= */
+/* Le registre. Les trois champs de gauche sont dans une pile qui est en
+   display: contents sur large, donc invisible a la grille, et qui redevient
+   une vraie colonne sous 860px. */
+function anatomie(p, i) {
+  return `
+    <div class="row__grid wrap">
+      <div class="stack">
+        <span class="f-date">${p.date}</span>
+        <h3 class="f-name"><span class="f-name__u">${p.nom}</span></h3>
+        <span class="f-theme">${p.theme}</span>
+      </div>
+      ${visual(p, i)}
+    </div>`;
+}
+
+
+
+const scroller = document.getElementById('scroller');
+const list = document.getElementById('list');
+const page = document.getElementById('page');
+
+let rows = [];
+let netIndex = 0;
+
+/* ==========================================================================
+   Construction d'une variante
+   ======================================================================= */
+function build() {
+  list.querySelectorAll('.row').forEach(n => n.remove());
+
+  PROJETS.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'row';
+    btn.type = 'button';
+    btn.dataset.index = i;
+    btn.setAttribute('aria-label', `${p.nom}, ${p.theme}, ${p.date}`);
+    btn.innerHTML = `<div class="row__inner">${anatomie(p, i)}</div>`;
+    list.appendChild(btn);
+  });
+
+  rows = [...list.querySelectorAll('.row')];
+  inners = rows.map(r => r.querySelector('.row__inner'));
+  applied = rows.map(() => ({ blur: -1, fade: -1 }));
+  unfreezeZoom();
+  loadVisuals();
+  scroller.scrollTop = 0;
+  measure();
+  paint(true);
+}
+
+/* Chargement simule. Seuls le visuel net et le suivant partent tout de
+   suite ; les autres attendent d'approcher du centre. Un visuel qui echoue
+   garde son flou de chargement indefiniment, la ligne reste cliquable. */
+function loadVisuals() {
+  document.querySelectorAll('.visual[data-loading]').forEach((v, i) => {
+    if (i > netIndex + 1) return;
+    setTimeout(() => v.removeAttribute('data-loading'), 260 + i * 180);
+  });
+}
+
+/* ==========================================================================
+   LA LOI DU FLOU ET L'ELECTION DU PROJET NET
+
+   Le flou dit lequel des cinq est le sujet. C'est une information de
+   hierarchie, donc il survit a prefers-reduced-motion : ce qui est coupe la
+   dessous, ce sont les deplacements, pas la lecture.
+
+   Flouter cinq lignes plein ecran est de loin l'operation la plus chere de
+   la page. Trois decisions pour qu'elle tienne le budget d'image :
+
+   1. Zero lecture de geometrie pendant le defilement. La position de chaque
+      ligne est mesuree une fois par construction et par resize. Le code
+      precedent faisait un getBoundingClientRect par ligne et par image,
+      entrelace avec les ecritures de style : chaque lecture forcait un
+      recalcul de layout synchrone, cinq fois par frame.
+   2. Le rayon de flou est echantillonne par paliers de 1.5px. Un flou coute
+      une rasterisation complete a chaque valeur distincte de rayon. En
+      continu, c'est soixante rasterisations par seconde et par ligne. Par
+      paliers, c'est quatre sur toute la course d'une ligne. L'opacite reste
+      continue, elle : le compositeur la donne pour rien, et c'est elle qui
+      porte la fluidite percue du geste.
+   3. Rien n'est ecrit si la valeur n'a pas bouge. Les lignes hors champ
+      sont au plafond et ne recoivent plus aucune ecriture.
+
+   Aucun etat intermediaire ne reste fige a l'arret : settle() repeint en
+   valeurs exactes, sans palier, 140ms apres le dernier evenement.
+
+   Pentes. d est la distance au centre en hauteurs de ligne. Le plafond de
+   flou est atteint a d = 1, c'est a dire des la ligne voisine : un seul
+   sujet a la fois, le reste est un voile uniforme et non un degrade de
+   lisibilite qui inviterait a lire de travers. L'opacite, elle, continue de
+   descendre jusqu'a d = 1.5, ce qui garde un reste de profondeur au dela du
+   plafond sans rien couter.
+   ======================================================================= */
+/* La rampe est une puissance, pas une droite : elle monte lentement pres
+   du focus et n'accelere que loin de lui. Le projet suivant reste lisible,
+   c'est seulement au-dela qu'il devient une masse, au moment ou la ligne
+   entre dans le halo et ou les deux se confondent.
+     d = 1  ->  1,0px     d = 1,5  ->  2,0px
+     d = 1,9  ->  plafond 3px */
+const RAMP_EXP   = 1.7;
+const BLUR_SLOPE = 1;      /* px de flou a une hauteur de ligne d'ecart */
+const BLUR_MAX   = 3;
+const BLUR_STEP  = 0.25;   /* palier d'echantillonnage. La course ne va plus
+                              que de 0 a 3px : au palier de 1px on aurait vu
+                              les marches, a 0,25 il reste douze
+                              rasterisations au plus sur le trajet d'une
+                              ligne, contre 60 par seconde en continu. */
+/* L'opacite suit la meme courbe, et la meme retenue : 8% de perte a une
+   ligne d'ecart, plancher a 30%. Avec un flou plafonne a 3px, une opacite
+   qui tomberait plus bas redeviendrait le moyen principal, alors que
+   l'information est portee par le flou. */
+const FADE_SLOPE = 0.08;
+const FADE_MAX   = 0.30;
+
+let inners = [];           /* .row__inner, porteurs du flou */
+let geom   = [];           /* centre et hauteur de chaque ligne, en contenu */
+let applied = [];          /* derniere valeur ecrite, pour ne pas reecrire */
+let focusY = 0;            /* ordonnee du centre du projet net, mesuree
+                              depuis le haut du scroller */
+let blurScale = 1;         /* facteur d'echelle du flou, 1 sur large */
+
+function measure() {
+  /* Le projet net a son haut sur la ligne de focus, donc son centre une
+     demi-ligne plus bas. Tout le reste en decoule. */
+  focusY = cssVar('--focus-top') + (rows[0] ? rows[0].offsetHeight / 2 : 0);
+
+  /* Le flou se remesure ici, et pas a l'import : la bascule desktop vers
+     mobile passe par une media query, pas par un rechargement. */
+  blurScale = cssVar('--blur-scale') || 1;
+  applied.forEach(a => { a.blur = -1; a.fade = -1; });
+  geom = rows.map(r => ({ c: r.offsetTop + r.offsetHeight / 2, h: r.offsetHeight || 1 }));
+}
+
+let queued = false;
+function requestPaint() {
+  if (queued) return;
+  queued = true;
+  requestAnimationFrame(() => paint(false));
+}
+
+/* exact = true : valeurs continues, sans palier. Reserve a l'arret. */
+function paint(exact) {
+  queued = false;
+  if (!geom.length) return;
+
+  /* En bout de course, le dernier projet ne rejoint pas la ligne de focus.
+     A son point d'arret il est a egale distance de l'avant-dernier, donc
+     la regle du plus proche ne peut pas les departager : la reference se
+     deplace sur lui. Sans cela il ne serait jamais elu et l'avant-dernier
+     resterait net a cote d'un dernier projet parfaitement visible. */
+  const atEnd = scroller.scrollTop >= targetTop(geom.length - 1) - 2;
+  const c = atEnd ? geom[geom.length - 1].c : scroller.scrollTop + focusY;
+  let best = 0, bestD = Infinity;
+  const ds = geom.map((g, i) => {
+    const d = Math.abs(g.c - c) / g.h;
+    if (d < bestD) { bestD = d; best = i; }
+    return d;
+  });
+
+  for (let i = 0; i < rows.length; i++) {
+    let blur, fade;
+    if (rows[i].hasAttribute('data-claimed')) {
+      /* La ligne revendiquee par un clic est nette avant d'etre arrivee. */
+      blur = 0; fade = 1;
+    } else {
+      const dp = Math.pow(ds[i], RAMP_EXP);
+      const cap = BLUR_MAX * blurScale;
+      const step = Math.max(0.125, BLUR_STEP * blurScale);
+      const raw = Math.min(dp * BLUR_SLOPE * blurScale, cap);
+      blur = exact ? raw : Math.min(Math.round(raw / step) * step, cap);
+      fade = 1 - Math.min(dp * FADE_SLOPE, FADE_MAX);
+    }
+    const a = applied[i];
+    if (blur !== a.blur) {
+      /* none, et pas blur(0px) : none supprime la couche, 0px la garde. */
+      inners[i].style.filter = blur > 0 ? `blur(${blur}px)` : 'none';
+      a.blur = blur;
+    }
+    if (Math.abs(fade - a.fade) > 0.004) {
+      inners[i].style.opacity = fade >= 0.999 ? '' : fade.toFixed(3);
+      a.fade = fade;
+    }
+  }
+
+  for (let i = 0; i < rows.length; i++) rows[i].toggleAttribute('data-net', i === best);
+  if (best !== netIndex) { unfreezeZoom(); netIndex = best; loadVisuals(); }
+
+}
+
+/* ==========================================================================
+   Evenements de defilement. Un seul abonnement, trois consequences.
+   ======================================================================= */
+let lastScrollAt = 0;
+let endTimer;
+
+scroller.addEventListener('scroll', () => {
+  lastScrollAt = performance.now();
+  requestPaint();
+  clearTimeout(endTimer);
+  endTimer = setTimeout(settle, 140);
+}, { passive: true });
+
+
+/* Aucun etat intermediaire ne doit rester fige quand le defilement s'arrete :
+   on repasse en valeurs exactes et on rend les revendications de clic. */
+function settle() {
+  /* Les revendications tombent avant le repeint, pas apres : sinon une
+     ligne revendiquee puis abandonnee en route resterait nette hors du
+     centre jusqu'au defilement suivant. */
+  rows.forEach(r => r.removeAttribute('data-claimed'));
+  paint(true);
+}
+
+let resizeQueued = false;
+addEventListener('resize', () => {
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => { resizeQueued = false; measure(); paint(true); });
+});
+
+/* ==========================================================================
+   RECENTRAGE.
+   scrollIntoView({ behavior: 'smooth' }) est remplace par un defilement
+   pilote image par image. Trois raisons : sa duree appartient au navigateur
+   et varie du simple au double selon la distance, sa courbe n'est pas la
+   notre, et son interruption par un geste utilisateur n'est fiable sur
+   aucun des trois moteurs. Ici la duree est connue, la courbe est celle du
+   design system, et le premier geste rend la main immediatement.
+
+   Le snap est suspendu pendant la course : avec scroll-snap-type mandatory,
+   toute ecriture de scrollTop est recalee sur le point de snap le plus
+   proche, ce qui hacherait le mouvement. Il est retabli a l'arrivee, sur un
+   scrollTop qui est deja exactement un point de snap, donc sans saut.
+   ======================================================================= */
+
+/* Solveur de cubic-bezier, pour que le JS suive exactement --ease-out
+   plutot qu'une approximation qui lui ressemblerait. */
+function bezier(x1, y1, x2, y2) {
+  const A = (a, b) => 1 - 3 * b + 3 * a;
+  const B = (a, b) => 3 * b - 6 * a;
+  const C = a => 3 * a;
+  const at = (t, a, b) => ((A(a, b) * t + B(a, b)) * t + C(a)) * t;
+  const slope = (t, a, b) => 3 * A(a, b) * t * t + 2 * B(a, b) * t + C(a);
+  return x => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let k = 0; k < 6; k++) {
+      const e = at(t, x1, x2) - x;
+      const d = slope(t, x1, x2);
+      if (Math.abs(e) < 1e-5 || d === 0) break;
+      t -= e / d;
+    }
+    return at(t, y1, y2);
+  };
+}
+const easeOut = bezier(0.23, 1, 0.32, 1);   /* --ease-out */
+
+let tween = 0;
+function stopTween() {
+  if (!tween) return;
+  cancelAnimationFrame(tween);
+  tween = 0;
+  scroller.style.scrollSnapType = '';
+  paint(true);
+}
+['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(t =>
+  addEventListener(t, stopTween, { passive: true }));
+
+function targetTop(i) {
+  const max = scroller.scrollHeight - scroller.clientHeight;
+  /* Le dernier projet s'arrete une demi-ligne avant la ligne de focus.
+     Meme valeur que le scroll-margin-top pose en CSS sur :last-of-type ;
+     les deux doivent rester d'accord, sinon le calage au clic et le calage
+     du navigateur visent deux points differents et la liste tremble. */
+  const off = (i === geom.length - 1) ? geom[i].h / 2 : 0;
+  return Math.max(0, Math.min(geom[i].c - focusY - off, max));
+}
+
+function centerRow(i, animate) {
+  stopTween();
+  const to = targetTop(i);
+  if (!animate || reduced()) { scroller.scrollTop = to; paint(true); return; }
+
+  const from = scroller.scrollTop;
+  const dist = to - from;
+  if (Math.abs(dist) < 1) { paint(true); return; }
+
+  /* 240ms pour une ligne, 90ms par ligne supplementaire, plafond 440ms.
+     Au-dela on ne percoit plus un rattrapage mais un transport. */
+  const dur = Math.min(240 + Math.abs(dist) / geom[i].h * 90, 440);
+  const t0 = performance.now();
+  scroller.style.scrollSnapType = 'none';
+
+  const step = now => {
+    const t = Math.min((now - t0) / dur, 1);
+    scroller.scrollTop = from + dist * easeOut(t);
+    if (t < 1) { tween = requestAnimationFrame(step); return; }
+    tween = 0;
+    scroller.scrollTop = to;
+    scroller.style.scrollSnapType = '';
+    paint(true);
+  };
+  tween = requestAnimationFrame(step);
+}
+
+/* ==========================================================================
+   Clic. Ligne floue : recentrage, avec retour visuel immediat. Ligne nette :
+   ouverture. Le tap qui suit un defilement encore en cours est ignore.
+   ======================================================================= */
+function claim(row) {
+  rows.forEach(r => r.removeAttribute('data-claimed'));
+  row.setAttribute('data-claimed', '');
+  paint(true);                       /* la ligne devient nette tout de suite */
+  centerRow(+row.dataset.index, true);
+  /* Filet : si la ligne etait deja a sa place, aucun evenement de
+     defilement ne partira, donc settle() ne serait jamais appele. */
+  clearTimeout(endTimer);
+  endTimer = setTimeout(settle, 600);
+}
+
+list.addEventListener('click', e => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+  if (performance.now() - lastScrollAt < 120) return;   /* inhibition du tap */
+  const i = +row.dataset.index;
+  if (i === netIndex) { open(i); return; }
+  claim(row);
+});
+
+/* ==========================================================================
+   Clavier. Tab amene le projet suivant au centre, Entree ouvre le net.
+   ======================================================================= */
+list.addEventListener('focusin', e => {
+  const row = e.target.closest('.row');
+  if (!row || +row.dataset.index === netIndex) return;
+  claim(row);
+});
+
+/* ==========================================================================
+   OUVERTURE ET RETOUR
+   Reference : le visuel voyage, via View Transitions. Repli : fondu court.
+   Le reglage de duree et de courbe est dans la feuille de style, sur les
+   pseudo-elements ::view-transition-*.
+   ======================================================================= */
+const hero = document.getElementById('page-hero');
+let vt = null;        /* transition en cours, ou null */
+let frozen = null;    /* visuel dont le zoom lent est fige */
+
+/* Le zoom lent est fige sur l'image exactement telle qu'elle est a l'ecran
+   avant la capture. Sinon le voyage part d'une echelle arbitraire, tiree au
+   sort par le moment du clic, et la morph parait instable.
+   Le degel n'a pas lieu au retour mais quand la ligne cesse d'etre nette :
+   degeler au retour ferait sauter l'image de 1.04 a 1 sous les yeux. */
+function freezeZoom(img) {
+  const m = getComputedStyle(img).transform;
+  img.style.animation = 'none';
+  if (m && m !== 'none') img.style.transform = m;
+  frozen = img;
+}
+function unfreezeZoom() {
+  if (!frozen) return;
+  frozen.style.animation = '';
+  frozen.style.transform = '';
+  frozen = null;
+}
+
+function open(i) {
+  if (vt || page.hasAttribute('data-open')) return;
+
+  const p = PROJETS[i];
+  const src = rows[i].querySelector('.visual');
+  freezeZoom(src.querySelector('.visual__img'));
+
+  hero.innerHTML = src.outerHTML;
+  const heroVisual = hero.querySelector('.visual');
+  heroVisual.removeAttribute('data-loading');
+  const heroImg = heroVisual.querySelector('.visual__img');
+  heroImg.style.animation = 'none';
+  heroImg.style.transform = '';
+
+  document.getElementById('page-date').textContent = `${p.date}, ${p.theme}`;
+  document.getElementById('page-title').textContent = p.nom;
+  document.getElementById('page-lede').textContent = p.lede;
+
+  const show = () => {
+    /* Le visuel source rend son nom avant que le nouvel etat soit capture :
+       deux elements ne peuvent pas porter le meme view-transition-name. */
+    src.style.viewTransitionName = '';
+    page.setAttribute('data-open', '');
+    page.scrollTop = 0;
+    document.getElementById('page-back').focus({ preventScroll: true });
+  };
+
+  if (document.startViewTransition && !reduced()) {
+    src.style.viewTransitionName = 'visuel';
+    heroVisual.style.viewTransitionName = 'visuel';
+    vt = document.startViewTransition(show);
+    vt.finished.finally(() => { src.style.viewTransitionName = ''; vt = null; });
+  } else {
+    page.setAttribute('data-fade', '');
+    show();
+    setTimeout(() => page.removeAttribute('data-fade'), 200);
+  }
+  history.pushState({ projet: i }, '', `#projet-${i + 1}`);
+}
+
+function close() {
+  /* Cas limite : retour demande pendant l'ouverture. On coupe la transition
+     en cours au lieu de la laisser finir puis d'en jouer une seconde a
+     l'envers. Qui revient pendant l'aller veut revenir maintenant, pas dans
+     600ms, et deux voyages enchaines du meme visuel ne se lisent pas. */
+  const interrupting = !!vt;
+  if (vt) { vt.skipTransition(); vt = null; }
+
+  const back = () => {
+    page.removeAttribute('data-open');
+    page.removeAttribute('data-fade');
+    centerRow(netIndex, false);
+    rows[netIndex].focus({ preventScroll: true });
+  };
+
+  const src = rows[netIndex].querySelector('.visual');
+  if (!interrupting && document.startViewTransition && !reduced()
+      && hero.querySelector('.visual')) {
+    /* Le retour reprend le meme chemin que l'aller, en sens inverse :
+       c'est ce qui rend le geste de sortie evident des la premiere fois. */
+    vt = document.startViewTransition(() => {
+      back();
+      src.style.viewTransitionName = 'visuel';
+    });
+    vt.finished.finally(() => {
+      src.style.viewTransitionName = '';
+      hero.innerHTML = '';
+      vt = null;
+    });
+  } else {
+    back();
+    hero.innerHTML = '';
+  }
+}
+
+document.getElementById('page-back').addEventListener('click', () => history.back());
+addEventListener('popstate', () => { if (page.hasAttribute('data-open')) close(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && page.hasAttribute('data-open')) history.back(); });
+
+/* Ancre profonde. Une ancre morte ramene en tete de section, sans message. */
+function applyHash() {
+  const m = /^#projet-(\d+)$/.exec(location.hash);
+  const i = m ? +m[1] - 1 : -1;
+  if (i >= 0 && i < rows.length) {
+    centerRow(i, false);
+  }
+}
+
+/* ==========================================================================
+   Commandes du prototype, hors sujet de design
+   ======================================================================= */
+const picker = document.querySelector('.proto-picker');
+picker.querySelector('.proto-picker-replay').addEventListener('click', () => {
+  document.querySelectorAll('.visual').forEach(v => v.setAttribute('data-loading', ''));
+  loadVisuals();
+});
+addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea')) return;
+  if (e.key === 'r' || e.key === 'R') picker.querySelector('.proto-picker-replay').click();
+});
+
+/* Les metriques changent quand la police variable arrive : on remesure. */
+document.fonts.ready.then(() => { measure(); paint(true); });
+build();
+applyHash();
+</script>
+
+</body>
+</html>
