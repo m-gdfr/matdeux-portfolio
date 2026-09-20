@@ -28,6 +28,7 @@
   --color-jade: #0b6b5a;
   --color-ember: #fa520f;
   --color-ember-ink: #c04408;
+  --color-soft-butter: #fff0c2;
 
   /* muted mesure 4.9:1 sur le parchemin, au dessus du plancher 4.5:1 */
   --color-muted: rgba(23, 22, 19, 0.62);
@@ -450,15 +451,125 @@ a { color: inherit; }
 }
 
 /* ===========================================================================
-   PROJETS, gabarit d'ancrage. Contenu traite par specs/02-projets.md.
+   PROJETS
+
+   Écran complet qui défile à l'intérieur de lui-même : un seul projet net à
+   la fois, les autres flous. Le raisonnement de chaque valeur est dans le
+   prototype d'origine, prototypes/projets/index.html.
+
+   Ce que l'intégration change par rapport au prototype, et pourquoi :
+
+   1. Le prototype était une page à lui seul, body en overflow hidden. Ici la
+      page continue de défiler, et c'est la section qui tient un défilement
+      interne. Conséquence : overscroll-behavior reste à auto et n'est pas
+      passé à contain. Contain enfermerait la molette dans la liste, et
+      Parcours ne serait plus atteignable qu'en cliquant le halo. La liste
+      chaîne donc vers la page à ses deux bouts.
+   2. Le bandeau fixe n'existait pas dans le prototype. La ligne de focus et
+      le fondu du haut descendent de sa hauteur, sinon le bandeau, opaque,
+      mangeait le fondu et coupait net le projet précédent au lieu de le
+      laisser s'effacer.
+   3. Le titre de section, demandé par US4 de specs/02-projets.md, est posé
+      en surimpression dans la bande libre entre le bandeau et la ligne de
+      focus. Il s'efface au premier défilement.
    ======================================================================== */
 .projets {
-  min-height: 100svh;
-  padding-block: 96px;
+  /* La ligne de focus est écrite en dur, et non en calc() : le script la lit
+     en parseFloat sur la propriété personnalisée, et une custom property
+     n'est pas résolue à la lecture. 196 = 72 de bandeau + les 124 du
+     prototype. Même chose pour la version mobile, 164 = 64 + 100. */
+  --focus-top: 196px;
+  --fade-top: 52px;
+  --halo-h: 140px;
+  --header-h: 72px;
+
+  /* Le flou est une distance : il se mesure à la taille de l'écran. */
+  --blur-scale: 1;
+
+  /* La hauteur de ligne se déduit de la hauteur d'écran. Le vide sous le
+     dernier projet est fixé à 86px et c'est la hauteur de ligne qui en
+     découle, faute de quoi ce reste explose dès que l'écran s'allonge. */
+  --row-h: clamp(
+    240px,
+    calc((100svh - var(--focus-top) - var(--halo-h) - 86px) / 1.5),
+    520px
+  );
+
+  position: relative;
+  height: 100svh;
+  overflow: hidden;
   border-top: 1px solid var(--color-hairline);
 }
+
+.projets__scroller {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  /* Le projet net se cale haut, sur la ligne de focus, et non au centre :
+     c'est ce décalage qui donne au fondu du haut quelque chose à effacer et
+     au projet précédent de quoi dépasser. Le recalage au clic vise la même
+     ligne, il n'y a donc qu'une seule définition du point de focus. */
+  scroll-padding-top: var(--focus-top);
+  /* Le défilement programmé est animé par le script, pas par le navigateur :
+     scroll-behavior reste auto pour ne pas doubler les deux. */
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.projets__scroller::-webkit-scrollbar { display: none; }
+
+/* Cas limite : fenêtre trop courte pour une ligne entière. Sous ce seuil le
+   snap strict est coupé, la liste redevient librement défilable, le flou
+   continue de se calculer par rapport au point de focus. */
+@media (max-height: 560px) {
+  .projets__scroller { scroll-snap-type: none; }
+}
+
+.projets__list {
+  position: relative;
+  padding-top: var(--focus-top);
+  /* De quoi amener le dernier projet à sa demi-ligne, jamais moins que le
+     halo. Le calcul peut devenir négatif sur une fenêtre haute, d'où max(). */
+  padding-bottom: max(
+    var(--halo-h),
+    calc(100svh - var(--focus-top) - 1.5 * var(--row-h))
+  );
+}
+
+/* Le fondu du haut. Un voile de parchemin posé par-dessus, pas un mask-image
+   sur le défileur : celui-ci porte déjà cinq filtres de flou, lui ajouter un
+   masque forcerait une couche de composition de plus pour un résultat
+   identique sur un fond plat. Il commence sous le bandeau. */
+.projets__fade {
+  position: absolute;
+  inset: var(--header-h) 0 auto 0;
+  height: var(--fade-top);
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(to bottom,
+    var(--color-parchment-canvas) 0%,
+    rgba(255, 250, 235, 0.90) 44%,
+    rgba(255, 250, 235, 0) 100%);
+}
+
+/* ---- Titre de section, US4 ---------------------------------------------
+   Visible à l'arrivée, effacé dès que le visiteur commence à parcourir. Il
+   ne prend la main sur rien : pointer-events à none, il vit dans la bande
+   que la ligne de focus laisse libre sous le bandeau.
+   ---------------------------------------------------------------------- */
+.projets__head {
+  position: absolute;
+  inset: var(--header-h) 0 auto 0;
+  z-index: 3;
+  padding-top: 24px;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-out);
+}
+.projets__head[data-gone] { opacity: 0; }
+
 .projets__label {
-  margin: 0 0 20px;
+  margin: 0 0 6px;
   font-size: 13px;
   font-weight: var(--weight-lede);
   letter-spacing: 0.05em;
@@ -467,12 +578,265 @@ a { color: inherit; }
 }
 .projets__title {
   margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: var(--weight-title);
+}
+
+/* ===========================================================================
+   LA LIGNE
+   Le flou et l'opacité de .row__inner sont écrits par le script, voir LA LOI
+   DU FLOU dans le script.
+   ======================================================================== */
+.row {
+  position: relative;
+  height: var(--row-h);
+  scroll-snap-align: start;
+  /* Jamais deux lignes en une impulsion. Le coût est réel, une impulsion
+     longue ne traverse plus la liste. Mais c'est exactement la thèse de
+     l'écran, un seul sujet à la fois, et avec trois à six projets le coût est
+     borné. Sur une liste de trente, la réponse serait l'inverse. */
+  scroll-snap-stop: always;
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* La loi du flou est écrite par le script directement sur cet élément, en
+   filter et en opacity, et non en CSS depuis une custom property posée sur la
+   ligne : écrire une custom property sur la ligne invalidait le style de tout
+   son sous-arbre, grille, titre et SVG compris, à chaque image. */
+.row__inner { height: 100%; }
+
+/* Une seule situation où le dénettage est animé : le clic sur une ligne
+   floue. Le rayon de flou, lui, tombe d'un coup à zéro, il n'est pas
+   interpolé : animer un flou plein écran pendant 160ms coûte une dizaine de
+   rastérisations complètes au moment précis où le défilement démarre, et
+   c'est la seule image du parcours qui ne peut pas se permettre de sauter.
+   L'opacité, gratuite pour le compositeur, porte la continuité du geste. */
+.row[data-claimed] .row__inner { transition: opacity 120ms var(--ease-out); }
+
+/* Le registre : quatre colonnes alignées d'une ligne à l'autre, un filet
+   au-dessus de chacune. C'est la seule lecture qui laisse balayer les dates
+   en colonne. */
+.row__grid {
+  height: 100%;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 96px minmax(0, 1fr) 200px 320px;
+  gap: 40px;
+  border-top: 1px solid var(--color-hairline);
+  transition: border-top-color 220ms var(--ease-out);
+}
+/* Le filet au-dessus du projet net vire à l'Ember. Un trait de 1px à 42% :
+   assez pour poser un repère horizontal dans un écran qui n'en a aucun, trop
+   peu pour devenir un second marqueur de focus en concurrence avec le flou. */
+.row[data-net] .row__grid { border-top-color: rgba(250, 82, 15, 0.42); }
+.row:first-of-type .row__grid,
+.row[data-net]:first-of-type .row__grid { border-top-color: transparent; }
+
+/* Sur large, les trois champs de gauche sont des colonnes de plein rang, au
+   même titre que le visuel. Sur mobile, la pile reprend ses droits. */
+.stack { display: contents; }
+
+/* ---- Champs typographiques --------------------------------------------- */
+/* La date reste neutre. Elle avait été teintée en Ember encre sur le projet
+   net : seul champ coloré de tout l'écran, elle formait un accent isolé que
+   rien d'autre ne reprenait. Une couleur qui n'apparaît qu'une fois n'est pas
+   un système, c'est une exception. */
+.f-date {
+  font-size: 13px;
+  font-weight: var(--weight-body);
+  letter-spacing: -0.004em;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.f-name {
+  margin: 0;
   font-size: 44px;
   line-height: 1.1;
   letter-spacing: -0.032em;
   font-weight: var(--weight-title);
 }
 
+/* Deux lignes maximum puis troncature : la hauteur de ligne ne bouge pas,
+   sinon le snap devient imprévisible.
+   Pas de soulignement permanent du projet net. Le flou dit déjà lequel est le
+   sujet, un trait en plus serait un second marqueur pour une seule
+   information. */
+.f-name__u {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-decoration: 2px solid underline transparent;
+  text-underline-offset: 6px;
+  transition: text-decoration-color 150ms var(--ease-out);
+}
+
+/* Le survol ne concerne QUE le projet net : c'est le seul dont le clic mène
+   quelque part. Survoler un projet flou n'annonce rien, son clic ne fait que
+   le recentrer. Un survol qui promet la même chose dans les deux cas ment une
+   fois sur deux. Sous (hover: none) la règle ne s'applique pas du tout. */
+@media (hover: hover) and (pointer: fine) {
+  .row[data-net]:hover .f-name__u { text-decoration-color: var(--color-ember); }
+}
+.row[data-net]:focus-visible .f-name__u { text-decoration-color: var(--color-ember); }
+
+.f-theme {
+  font-size: 17px;
+  font-weight: var(--weight-body);
+  letter-spacing: -0.008em;
+  color: var(--color-muted);
+}
+
+/* ---- Le visuel ----------------------------------------------------------
+   Il porte deux choses : le zoom lent quand la ligne est nette, et le flou de
+   chargement progressif quand il n'est pas encore chargé.
+   ---------------------------------------------------------------------- */
+.visual {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-soft-butter);
+  aspect-ratio: 16 / 10;
+  width: 100%;
+}
+.visual__img {
+  position: absolute;
+  inset: 0;
+  /* width et height explicites, et pas seulement inset: 0. Un SVG est un
+     élément remplacé : avec des dimensions auto il garde le ratio de son
+     viewBox et se contente de la largeur, en laissant le bas de la boîte
+     vide. Le recadrage est fait par preserveAspectRatio="slice". */
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  transition: filter 420ms var(--ease-out), transform 420ms var(--ease-out);
+}
+/* Tant que data-loading est là, l'image reste floue. Si elle ne charge
+   jamais, ce flou reste, plutôt que de laisser un trou. */
+.visual[data-loading] .visual__img {
+  filter: blur(18px);
+  transform: scale(1.06);
+}
+
+/* Le zoom lent ne boucle pas et ne repart pas en arrière : une dérive infinie
+   sur le visuel que le recruteur est en train de regarder est du mouvement
+   décoratif sur du contenu évalué. Ce qui reste a un sens, et un seul : le
+   projet net est vivant, les autres sont figés. Donc une seule passe, en
+   avant, qui se pose et s'arrête.
+   Le délai de 420ms laisse d'abord finir le dénettage de chargement, dont la
+   transition sur transform serait sinon écrasée par l'animation. */
+@keyframes slow-zoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.04); }
+}
+.row[data-net] .visual:not([data-loading]) .visual__img {
+  animation: slow-zoom 12s linear 420ms forwards;
+}
+
+/* Le dernier projet ne monte pas jusqu'à la ligne de focus, il s'arrête une
+   demi-ligne plus bas. Aller jusqu'au bout laissait un écran entier de vide
+   sous lui ; s'arrêter au ras du halo ne lui laissait que 64px de course, et
+   cliquer l'avant-dernier ne produisait alors aucun mouvement visible, donc
+   aucune confirmation. Une demi-ligne, soit 150px, se voit sans rouvrir le
+   trou. La même valeur est reprise par targetTop() dans le script ; les deux
+   doivent rester d'accord, sinon la liste tremble. */
+.row:last-of-type { scroll-margin-top: calc(var(--row-h) / 2); }
+
+/* ===========================================================================
+   LA SORTIE VERS PARCOURS, le halo.
+
+   Ce que le halo doit faire : annoncer que l'écran suivant est entièrement
+   Ember sans manger l'écran des projets. C'est un panneau de direction, pas
+   un décor. Il ne défile jamais.
+   Rampe de 140px, plafond à 30%. En dessous de 140 la rampe redevient un bord
+   et perd ce qui fait le halo, au-dessus elle mord sur le projet suivant.
+   Le mot est en Suie, jamais en Papier : #fffaeb sur #fa520f tombe à 2,9:1 et
+   échoue AA. Suie sur un halo à 30% tient 12:1.
+   ======================================================================== */
+.outro {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--halo-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 24px;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(250, 82, 15, 0.30) 0%,
+    rgba(250, 82, 15, 0.18) 34%,
+    rgba(250, 82, 15, 0.07) 66%,
+    rgba(255, 250, 235, 0) 100%);
+}
+.outro__link {
+  pointer-events: auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 17px;
+  font-weight: var(--weight-title);
+  letter-spacing: -0.008em;
+  color: var(--color-suie);
+  text-decoration: none;
+}
+.outro__word {
+  text-decoration: 2px solid underline transparent;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 150ms ease;
+}
+.outro__link:hover .outro__word,
+.outro__link:focus-visible .outro__word { text-decoration-color: currentColor; }
+/* La flèche de l'ancre, en Ember plein. C'est l'emploi prévu par le système,
+   l'Ember vit dans les remplissages et les icônes ; l'Ember encre est réservé
+   au texte, et ce n'en est pas. Le mot à côté reste en Suie, c'est lui qui
+   porte la lisibilité. */
+.outro__arrow { color: var(--color-ember); transition: transform 220ms var(--ease-out); }
+.outro__link:hover .outro__arrow { transform: translateY(2px); }
+
+/* ===========================================================================
+   PROJETS, MOBILE. Même comportement, aucun mécanisme au survol.
+   Date, nom et thème s'empilent à gauche, le visuel reste à droite.
+   ======================================================================== */
+@media (max-width: 860px) {
+  .projets {
+    --focus-top: 164px;     /* 64 de bandeau, plus les 100 du prototype */
+    --header-h: 64px;
+    --halo-h: 112px;
+    --fade-top: 36px;
+    /* Le flou reste proportionnel à l'écran, mais le facteur remonte à 0,75 :
+       la rampe desktop a été divisée par près de trois, la couper encore de
+       moitié rendrait le flou invisible sur téléphone. */
+    --blur-scale: 0.75;
+  }
+
+  /* Le visuel reste en 16/10, comme sur desktop : un format qui change d'un
+     support à l'autre obligerait à recadrer chaque visuel deux fois, et le
+     même projet ne se reconnaîtrait pas d'un écran à l'autre. La ligne haute
+     se paie en air autour du visuel, pas en recadrage. */
+  .row__grid { grid-template-columns: minmax(0, 1fr) 46vw; gap: 18px; }
+  .stack { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .f-name { font-size: 28px; letter-spacing: -0.024em; }
+  .f-theme { font-size: 15px; }
+  .projets__title { font-size: 22px; }
+  .projets__head { padding-top: 18px; }
+}
 
 /* ===========================================================================
    PARCOURS
@@ -622,6 +986,20 @@ a { color: inherit; }
 
   .xp__fold, .xp__body, .xp__mark, .xp__head { transition-duration: 1ms !important; }
   .parcours[data-js] .xp__body { transform: none !important; }
+
+  /* Projets. Le zoom saute, le recentrage et les transitions de focus
+     deviennent instantanes. Le flou, lui, reste : c'est une information de
+     hierarchie, pas une animation. */
+  .row[data-net] .visual .visual__img { animation: none; }
+  .visual__img,
+  .f-name__u,
+  .row__grid,
+  .projets__head,
+  .outro__arrow { transition-duration: 1ms !important; }
+  /* Exception : le denettage garde ses 120ms. C'est le seul accuse de
+     reception du clic sur une ligne floue, le faire basculer d'un coup
+     reviendrait a ne rien repondre. */
+  .row[data-claimed] .row__inner { transition-duration: 120ms; }
 }
 </style>
 </head>
@@ -703,10 +1081,34 @@ a { color: inherit; }
     </div>
   </section>
 
+  <!-- Les lignes sont construites par le script, à partir de PROJETS. C'est le
+       seul contenu de la page qui n'est pas en dur : chaque ligne porte un
+       visuel SVG généré, un flou piloté image par image, et un état net ou
+       flou qui n'a aucun sens sans JavaScript. Sans lui, la section se réduit
+       à son titre, et l'ancre Parcours du halo reste atteignable. -->
   <section class="projets" id="projets" tabindex="-1">
-    <div class="wrap">
-      <p class="projets__label">Projets</p>
-      <h2 class="projets__title">Ce que j'ai construit.</h2>
+    <div class="projets__scroller" id="projets-scroller">
+      <div class="projets__list" id="projets-list"></div>
+    </div>
+
+    <div class="projets__fade" aria-hidden="true"></div>
+
+    <div class="projets__head" id="projets-head">
+      <div class="wrap">
+        <p class="projets__label">Projets</p>
+        <h2 class="projets__title">Ce que j'ai construit.</h2>
+      </div>
+    </div>
+
+    <div class="outro">
+      <a class="outro__link" href="#parcours" id="outro-parcours">
+        <span class="outro__word">Parcours</span>
+        <svg class="outro__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 4v15"/><path d="m5.5 13 6.5 6.5 6.5-6.5"/>
+        </svg>
+      </a>
     </div>
   </section>
 
@@ -1020,6 +1422,409 @@ const onScroll = [];
     const h = header.offsetHeight;
     header.toggleAttribute('data-ember', r.top <= h && r.bottom > h);
   });
+})();
+
+/* ==========================================================================
+   Projets. Un seul projet net à la fois, les autres flous.
+
+   OUVERTURE D'UNE PAGE PROJET, non intégrée. Le prototype simulait la page
+   dans le même document et faisait voyager le visuel en View Transitions.
+   La vraie page projet est traitée par specs/04-page-projet.md et n'existe
+   pas encore : plutôt que d'embarquer une page factice, le clic sur le
+   projet net ne fait rien pour l'instant, et se contente d'être mesuré.
+   Ce qui reste à rebrancher le jour venu : le gel du zoom lent avant la
+   capture, le view-transition-name posé sur le visuel source puis rendu
+   avant la capture du nouvel état, et le retour par le même chemin.
+
+   CONTENU. Les cinq projets ci-dessous viennent du prototype et sont des
+   données de travail, à remplacer par les vrais projets. Seul Audience
+   Planning correspond à une expérience réelle.
+   ======================================================================= */
+(() => {
+  const section = document.getElementById('projets');
+  const scroller = document.getElementById('projets-scroller');
+  const list = document.getElementById('projets-list');
+  const titre = document.getElementById('projets-head');
+  if (!section || !scroller || !list) return;
+
+  const PROJETS = [
+    { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
+      a: '#fff0c2', b: '#fa520f', c: '#c04408' },
+    { date: '2023', nom: 'Console Partenaires', theme: 'Outil interne',
+      a: '#e6f2ed', b: '#cfe6df', c: '#0b6b5a' },
+    { date: '2022', nom: 'Atlas', theme: 'Catalogue de données',
+      a: '#fff0c2', b: '#fcb07a', c: '#171613' },
+    { date: '2021', nom: 'Cadence', theme: 'Design system',
+      a: '#fffdf6', b: '#cfe6df', c: '#0b6b5a' },
+    { date: '2020', nom: 'Halo', theme: 'Application mobile',
+      a: '#fcb07a', b: '#fa520f', c: '#171613' }
+  ];
+
+  /* Les valeurs lues ici sont écrites en dur dans la feuille de style, sans
+     calc() : une propriété personnalisée n'est pas résolue à la lecture. */
+  const cssVar = (n) => parseFloat(getComputedStyle(section).getPropertyValue(n));
+
+  /* Visuel de substitution, un dégradé et une silhouette. Les vrais visuels
+     sont une obligation d'édition : un projet sans visuel ne se publie pas. */
+  function visual(p, i) {
+    return `
+      <div class="visual" data-loading>
+        <svg class="visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
+             role="img" aria-label="Visuel du projet ${p.nom}">
+          <defs>
+            <linearGradient id="pj-g${i}" x1="0" y1="0" x2="0.4" y2="1">
+              <stop offset="0%" stop-color="${p.a}"/>
+              <stop offset="60%" stop-color="${p.b}"/>
+              <stop offset="100%" stop-color="${p.c}"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="100" fill="url(#pj-g${i})"/>
+          <path d="M0 100 L34 58 L58 78 L92 40 L118 66 L160 24 L160 100 Z"
+                fill="${p.c}" opacity="0.22"/>
+          <circle cx="122" cy="26" r="11" fill="${p.a}" opacity="0.7"/>
+        </svg>
+      </div>`;
+  }
+
+  /* Les trois champs de gauche sont dans une pile en display: contents sur
+     large, donc invisible à la grille, qui redevient une vraie colonne sous
+     860px. */
+  function ligne(p, i) {
+    return `
+      <div class="row__grid wrap">
+        <div class="stack">
+          <span class="f-date">${p.date}</span>
+          <h3 class="f-name"><span class="f-name__u">${p.nom}</span></h3>
+          <span class="f-theme">${p.theme}</span>
+        </div>
+        ${visual(p, i)}
+      </div>`;
+  }
+
+  let rows = [];
+  let inners = [];          /* .row__inner, porteurs du flou */
+  let geom = [];            /* centre et hauteur de chaque ligne, en contenu */
+  let applied = [];         /* dernière valeur écrite, pour ne pas réécrire */
+  let netIndex = 0;
+  let focusY = 0;           /* ordonnée du centre du projet net, depuis le
+                               haut du défileur */
+  let blurScale = 1;
+
+  function build() {
+    PROJETS.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'row';
+      btn.type = 'button';
+      btn.dataset.index = i;
+      btn.setAttribute('aria-label', `${p.nom}, ${p.theme}, ${p.date}`);
+      btn.innerHTML = `<div class="row__inner">${ligne(p, i)}</div>`;
+      list.appendChild(btn);
+    });
+
+    rows = [...list.querySelectorAll('.row')];
+    inners = rows.map((r) => r.querySelector('.row__inner'));
+    applied = rows.map(() => ({ blur: -1, fade: -1 }));
+    loadVisuals();
+    measure();
+    paint(true);
+  }
+
+  /* Chargement progressif. Seuls le visuel net et le suivant partent tout de
+     suite ; les autres attendent d'approcher du centre. Un visuel qui échoue
+     garde son flou de chargement indéfiniment, la ligne reste cliquable. */
+  function loadVisuals() {
+    list.querySelectorAll('.visual[data-loading]').forEach((v, i) => {
+      if (i > netIndex + 1) return;
+      setTimeout(() => v.removeAttribute('data-loading'), 260 + i * 180);
+    });
+  }
+
+  /* ==========================================================================
+     LA LOI DU FLOU ET L'ÉLECTION DU PROJET NET
+
+     Le flou dit lequel des cinq est le sujet. C'est une information de
+     hiérarchie, donc il survit à prefers-reduced-motion : ce qui est coupé
+     là-dessous, ce sont les déplacements, pas la lecture.
+
+     Flouter cinq lignes plein écran est de loin l'opération la plus chère de
+     la page. Trois décisions pour qu'elle tienne le budget d'image :
+
+     1. Zéro lecture de géométrie pendant le défilement. La position de chaque
+        ligne est mesurée une fois par construction et par redimensionnement.
+        Un getBoundingClientRect par ligne et par image, entrelacé avec les
+        écritures de style, forcerait cinq recalculs de mise en page
+        synchrones par image.
+     2. Le rayon de flou est échantillonné par paliers. Un flou coûte une
+        rastérisation complète à chaque valeur distincte de rayon : en continu
+        c'est soixante par seconde et par ligne, par paliers c'est douze au
+        plus sur toute la course d'une ligne. L'opacité reste continue, elle :
+        le compositeur la donne pour rien, et c'est elle qui porte la fluidité
+        perçue du geste.
+     3. Rien n'est écrit si la valeur n'a pas bougé. Les lignes hors champ
+        sont au plafond et ne reçoivent plus aucune écriture.
+
+     Aucun état intermédiaire ne reste figé à l'arrêt : settle() repeint en
+     valeurs exactes, sans palier, 140ms après le dernier événement.
+
+     La rampe est une puissance, pas une droite : elle monte lentement près du
+     focus et n'accélère que loin de lui. Le projet suivant reste lisible,
+     c'est seulement au-delà qu'il devient une masse, au moment où la ligne
+     entre dans le halo et où les deux se confondent.
+     d = 1 donne 1px, d = 1,5 donne 2px, le plafond de 3px tombe à d = 1,9.
+     ======================================================================= */
+  const RAMP_EXP   = 1.7;
+  const BLUR_SLOPE = 1;      /* px de flou à une hauteur de ligne d'écart */
+  const BLUR_MAX   = 3;
+  const BLUR_STEP  = 0.25;
+  /* L'opacité suit la même courbe et la même retenue : 8% de perte à une
+     ligne d'écart, plancher à 30%. Avec un flou plafonné à 3px, une opacité
+     qui tomberait plus bas redeviendrait le moyen principal, alors que
+     l'information est portée par le flou. */
+  const FADE_SLOPE = 0.08;
+  const FADE_MAX   = 0.30;
+
+  function measure() {
+    /* Le projet net a son haut sur la ligne de focus, donc son centre une
+       demi-ligne plus bas. Tout le reste en découle. */
+    focusY = cssVar('--focus-top') + (rows[0] ? rows[0].offsetHeight / 2 : 0);
+    /* Le flou se remesure ici, et pas une fois pour toutes : la bascule
+       desktop vers mobile passe par une media query, pas par un rechargement. */
+    blurScale = cssVar('--blur-scale') || 1;
+    applied.forEach((a) => { a.blur = -1; a.fade = -1; });
+    geom = rows.map((r) => ({ c: r.offsetTop + r.offsetHeight / 2, h: r.offsetHeight || 1 }));
+  }
+
+  let queued = false;
+  function requestPaint() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => paint(false));
+  }
+
+  /* exact = true : valeurs continues, sans palier. Réservé à l'arrêt. */
+  function paint(exact) {
+    queued = false;
+    if (!geom.length) return;
+
+    /* En bout de course, le dernier projet ne rejoint pas la ligne de focus.
+       À son point d'arrêt il est à égale distance de l'avant-dernier, donc la
+       règle du plus proche ne peut pas les départager : la référence se
+       déplace sur lui. Sans cela il ne serait jamais élu et l'avant-dernier
+       resterait net à côté d'un dernier projet parfaitement visible. */
+    const atEnd = scroller.scrollTop >= targetTop(geom.length - 1) - 2;
+    const c = atEnd ? geom[geom.length - 1].c : scroller.scrollTop + focusY;
+    let best = 0, bestD = Infinity;
+    const ds = geom.map((g, i) => {
+      const d = Math.abs(g.c - c) / g.h;
+      if (d < bestD) { bestD = d; best = i; }
+      return d;
+    });
+
+    for (let i = 0; i < rows.length; i++) {
+      let blur, fade;
+      if (rows[i].hasAttribute('data-claimed')) {
+        /* La ligne revendiquée par un clic est nette avant d'être arrivée. */
+        blur = 0; fade = 1;
+      } else {
+        const dp = Math.pow(ds[i], RAMP_EXP);
+        const cap = BLUR_MAX * blurScale;
+        const step = Math.max(0.125, BLUR_STEP * blurScale);
+        const raw = Math.min(dp * BLUR_SLOPE * blurScale, cap);
+        blur = exact ? raw : Math.min(Math.round(raw / step) * step, cap);
+        fade = 1 - Math.min(dp * FADE_SLOPE, FADE_MAX);
+      }
+      const a = applied[i];
+      if (blur !== a.blur) {
+        /* none, et pas blur(0px) : none supprime la couche, 0px la garde. */
+        inners[i].style.filter = blur > 0 ? `blur(${blur}px)` : 'none';
+        a.blur = blur;
+      }
+      if (Math.abs(fade - a.fade) > 0.004) {
+        inners[i].style.opacity = fade >= 0.999 ? '' : fade.toFixed(3);
+        a.fade = fade;
+      }
+    }
+
+    for (let i = 0; i < rows.length; i++) rows[i].toggleAttribute('data-net', i === best);
+    if (best !== netIndex) { netIndex = best; loadVisuals(); }
+  }
+
+  /* ==========================================================================
+     Événements de défilement du défileur interne. La page, elle, continue de
+     défiler par-dessus : le chaînage aux deux bouts de la liste est ce qui
+     laisse arriver depuis l'accueil et repartir vers Parcours au geste.
+     ======================================================================= */
+  let lastScrollAt = 0;
+  let endTimer;
+
+  scroller.addEventListener('scroll', () => {
+    lastScrollAt = performance.now();
+    /* US4 : le titre de section s'efface dès que le visiteur commence à
+       parcourir, et revient s'il remonte en tête. */
+    if (titre) titre.toggleAttribute('data-gone', scroller.scrollTop > 8);
+    requestPaint();
+    clearTimeout(endTimer);
+    endTimer = setTimeout(settle, 140);
+  }, { passive: true });
+
+  /* Aucun état intermédiaire ne doit rester figé quand le défilement
+     s'arrête. Les revendications tombent avant le repeint, pas après : sinon
+     une ligne revendiquée puis abandonnée en route resterait nette hors du
+     centre jusqu'au défilement suivant. */
+  function settle() {
+    rows.forEach((r) => r.removeAttribute('data-claimed'));
+    paint(true);
+  }
+
+  let resizeQueued = false;
+  window.addEventListener('resize', () => {
+    if (resizeQueued) return;
+    resizeQueued = true;
+    requestAnimationFrame(() => { resizeQueued = false; measure(); paint(true); });
+  });
+
+  /* ==========================================================================
+     RECENTRAGE.
+     scrollIntoView({ behavior: 'smooth' }) est remplacé par un défilement
+     piloté image par image. Trois raisons : sa durée appartient au navigateur
+     et varie du simple au double selon la distance, sa courbe n'est pas la
+     nôtre, et son interruption par un geste utilisateur n'est fiable sur
+     aucun des trois moteurs. Ici la durée est connue, la courbe est celle du
+     design system, et le premier geste rend la main immédiatement.
+
+     Le snap est suspendu pendant la course : avec scroll-snap-type mandatory,
+     toute écriture de scrollTop est recalée sur le point de snap le plus
+     proche, ce qui hacherait le mouvement. Il est rétabli à l'arrivée, sur un
+     scrollTop qui est déjà exactement un point de snap, donc sans saut.
+     ======================================================================= */
+
+  /* Solveur de cubic-bezier, pour que le script suive exactement --ease-out
+     plutôt qu'une approximation qui lui ressemblerait. */
+  function bezier(x1, y1, x2, y2) {
+    const A = (a, b) => 1 - 3 * b + 3 * a;
+    const B = (a, b) => 3 * b - 6 * a;
+    const C = (a) => 3 * a;
+    const at = (t, a, b) => ((A(a, b) * t + B(a, b)) * t + C(a)) * t;
+    const slope = (t, a, b) => 3 * A(a, b) * t * t + 2 * B(a, b) * t + C(a);
+    return (x) => {
+      if (x <= 0) return 0;
+      if (x >= 1) return 1;
+      let t = x;
+      for (let k = 0; k < 6; k++) {
+        const e = at(t, x1, x2) - x;
+        const d = slope(t, x1, x2);
+        if (Math.abs(e) < 1e-5 || d === 0) break;
+        t -= e / d;
+      }
+      return at(t, y1, y2);
+    };
+  }
+  const easeOut = bezier(0.23, 1, 0.32, 1);   /* --ease-out */
+
+  let tween = 0;
+  function stopTween() {
+    if (!tween) return;
+    cancelAnimationFrame(tween);
+    tween = 0;
+    scroller.style.scrollSnapType = '';
+    paint(true);
+  }
+  ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((t) =>
+    window.addEventListener(t, stopTween, { passive: true }));
+
+  function targetTop(i) {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    /* Le dernier projet s'arrête une demi-ligne avant la ligne de focus.
+       Même valeur que le scroll-margin-top posé en CSS sur :last-of-type. */
+    const off = (i === geom.length - 1) ? geom[i].h / 2 : 0;
+    return Math.max(0, Math.min(geom[i].c - focusY - off, max));
+  }
+
+  function centerRow(i, animate) {
+    stopTween();
+    const to = targetTop(i);
+    if (!animate || reduced()) { scroller.scrollTop = to; paint(true); return; }
+
+    const from = scroller.scrollTop;
+    const dist = to - from;
+    if (Math.abs(dist) < 1) { paint(true); return; }
+
+    /* 240ms pour une ligne, 90ms par ligne supplémentaire, plafond 440ms.
+       Au-delà on ne perçoit plus un rattrapage mais un transport. */
+    const dur = Math.min(240 + Math.abs(dist) / geom[i].h * 90, 440);
+    const t0 = performance.now();
+    scroller.style.scrollSnapType = 'none';
+
+    const step = (now) => {
+      const t = Math.min((now - t0) / dur, 1);
+      scroller.scrollTop = from + dist * easeOut(t);
+      if (t < 1) { tween = requestAnimationFrame(step); return; }
+      tween = 0;
+      scroller.scrollTop = to;
+      scroller.style.scrollSnapType = '';
+      paint(true);
+    };
+    tween = requestAnimationFrame(step);
+  }
+
+  /* ==========================================================================
+     Clic. Ligne floue : recentrage, avec retour visuel immédiat. Ligne nette :
+     rien pour l'instant, voir l'entête de ce bloc. Le tap qui suit un
+     défilement encore en cours est ignoré.
+     ======================================================================= */
+  function claim(row) {
+    rows.forEach((r) => r.removeAttribute('data-claimed'));
+    row.setAttribute('data-claimed', '');
+    paint(true);                       /* la ligne devient nette tout de suite */
+    centerRow(+row.dataset.index, true);
+    /* Filet : si la ligne était déjà à sa place, aucun événement de
+       défilement ne partira, donc settle() ne serait jamais appelé. */
+    clearTimeout(endTimer);
+    endTimer = setTimeout(settle, 600);
+  }
+
+  list.addEventListener('click', (e) => {
+    const row = e.target.closest('.row');
+    if (!row) return;
+    if (performance.now() - lastScrollAt < 120) return;   /* inhibition du tap */
+    const i = +row.dataset.index;
+    if (i === netIndex) { track('clic_projet_net'); return; }
+    claim(row);
+  });
+
+  /* Clavier. Tab amène le projet suivant au centre. */
+  list.addEventListener('focusin', (e) => {
+    const row = e.target.closest('.row');
+    if (!row || +row.dataset.index === netIndex) return;
+    claim(row);
+  });
+
+  /* ==========================================================================
+     Sortie vers Parcours. Le halo est la sortie explicite ; le chaînage du
+     défilement en est une seconde, au geste.
+     ======================================================================= */
+  const outro = document.getElementById('outro-parcours');
+  if (outro) {
+    outro.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('parcours')
+        .scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+      history.replaceState(null, '', '#parcours');
+    });
+  }
+
+  /* US6, lien profond vers un projet. Une ancre morte ramène en tête de
+     section, sans message. */
+  const m = /^#projet-(\d+)$/.exec(location.hash);
+  const i = m ? +m[1] - 1 : -1;
+
+  /* Les métriques changent quand la police variable arrive : on remesure. */
+  document.fonts.ready.then(() => { measure(); paint(true); });
+  build();
+  if (i >= 0 && i < rows.length) {
+    section.scrollIntoView({ block: 'start' });
+    centerRow(i, false);
+  }
 })();
 </script>
 </body>
