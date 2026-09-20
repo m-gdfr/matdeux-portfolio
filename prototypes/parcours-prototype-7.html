@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype 7, la poussière</title>
+
+<!-- ===========================================================================
+     PROTOTYPE, tour 7. Code jetable.
+
+     Changement de médium. Les cent ronds en DOM disparaissent au profit d'un
+     champ de plusieurs milliers de particules en canvas.
+
+     CE QUE CE TOUR ABANDONNE, ET POURQUOI C'EST ASSUMÉ
+
+     La grille de 100 points était une QUANTIFICATION d'un pourcentage : on
+     arrondissait 35,7 % à 36 points pour pouvoir les dessiner. La poussière
+     rend le pourcentage directement, sans arrondi, à une résolution plus
+     fine. Le calcul du plus fort reste et la garantie du point minimum ne
+     servent plus à rien ici.
+     Ce qu'on perd : on ne peut plus compter. Ça ne coûte rien, la spec dit
+     que la grille est un différenciateur mémoriel et non un outil d'analyse,
+     et la durée exacte est écrite en toutes lettres dans la fiche.
+
+     CE QUE CE TOUR DÉPLACE DANS LA SPEC
+
+     Le survol n'est plus un aperçu atténué et instantané : il devient
+     l'événement principal, celui où la poussière s'anime. Le clic ne fait
+     plus que rendre cet état permanent et déplier la fiche. Le diagramme
+     d'états de la spec est à reprendre.
+
+     Le moteur de particules est dans dust.js, écrit par l'agent motion.
+     Comportement retenu : condense. L'information est la DENSITÉ, la part se
+     resserre et gagne en lumière, le reste se dilue sans disparaître. Il
+     reste visible à 20 % parce qu'une proportion est un rapport, et qu'un
+     rapport a besoin de ses deux termes.
+
+     L'appartenance à une part est tirée au hasard, pas contiguë : les
+     particules désignées sont dispersées dans toute la sphère. La proportion
+     reste exacte, mais elle ne se lit plus comme une région, seulement comme
+     une densité lumineuse d'ensemble.
+     ======================================================================== -->
+
+<style>
+@font-face {
+  font-family: 'General Sans';
+  src: url('../assets/fonts/GeneralSans-Variable.woff2') format('woff2-variations'),
+       url('../assets/fonts/GeneralSans-Variable.woff')  format('woff-variations');
+  font-weight: 200 700; font-style: normal; font-display: swap;
+}
+
+:root {
+  --ground: #c04408;
+  --papier: #fffdf6;
+  --ink: var(--papier);
+  --ink-muted: rgba(255, 253, 246, 0.76);
+  --hairline: rgba(255, 253, 246, 0.26);
+  --wash: rgba(255, 253, 246, 0.10);
+
+  --font-general: 'General Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --weight-title: 600; --weight-lede: 550; --weight-body: 470;
+
+  --gutter: 56px; --col: 440px; --split-gap: 80px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --dur-fold: 220ms;
+}
+@media (max-width: 980px) { :root { --gutter: 20px; } }
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--font-general); font-weight: var(--weight-body);
+  font-size: 17px; line-height: 1.68; letter-spacing: -0.008em;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--papier); outline-offset: 3px; border-radius: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.parcours { min-height: 100svh; display: grid; place-items: center; padding: 96px var(--gutter); }
+/* La composition ne couvre plus la page, elle s'y pose. Largeur bornée,
+   colonnes centrées l'une sur l'autre, et de l'air tout autour. */
+.split {
+  width: 100%; max-width: 1120px;
+  display: grid; grid-template-columns: var(--col) minmax(0, 1fr);
+  gap: var(--split-gap); align-items: center;
+}
+.split__right { display: flex; justify-content: center; }
+
+/* Le canvas est carré et transparent : le fond orange de la page traverse,
+   il n'y a donc qu'une seule surface colorée dans tout l'écran. */
+.stage { position: relative; width: min(100%, 520px); aspect-ratio: 1; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+
+/* ===========================================================================
+   LA LISTE
+   ======================================================================== */
+.list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--hairline); }
+.row { border-bottom: 1px solid var(--hairline); }
+.row__head {
+  display: grid; grid-template-columns: 7px 1fr auto; align-items: baseline; column-gap: 12px;
+  width: calc(100% + 24px); margin-inline: -12px; padding: 24px 12px;
+  border: 0; background: transparent; color: inherit; font: inherit; text-align: left;
+  cursor: pointer; border-radius: 8px; transition: background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .row__head:hover { background: var(--wash); } }
+.row__head:active { background: rgba(255, 253, 246, 0.16); }
+.row__name { font-size: 22px; font-weight: var(--weight-title); line-height: 1.28; letter-spacing: -0.02em; }
+.row__role { grid-column: 2; font-size: 17px; font-weight: var(--weight-lede); color: var(--ink-muted); }
+.row__dates { grid-row: 1; grid-column: 3; font-size: 17px; color: var(--ink-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.row__mark {
+  grid-row: 1; grid-column: 1; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--papier); align-self: center;
+  transform: scale(0); opacity: 0;
+  transition: transform 180ms var(--ease-out), opacity 180ms var(--ease-out);
+}
+.row[data-open] .row__mark { transform: scale(1); opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .row:not([data-open]) .row__head:hover .row__mark { transform: scale(1); opacity: .45; }
+}
+.row__fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-fold) var(--ease-out); }
+.row[data-open] .row__fold { grid-template-rows: 1fr; }
+.row__foldInner { overflow: hidden; }
+.panel { padding: 0 0 28px 19px; max-width: 46ch; opacity: 0; transform: translateY(6px); transition: opacity 180ms var(--ease-out) 40ms, transform 180ms var(--ease-out) 40ms; }
+.row[data-open] .panel { opacity: 1; transform: none; }
+.panel__text { margin: 0; color: var(--ink-muted); }
+
+@media (max-width: 980px) {
+  /* Une colonne, la sphère d'abord. Sans souris il n'y a pas de survol :
+     c'est le clic qui la fait réagir, et la voir avant la liste dit à quoi
+     le clic va servir. */
+  .parcours { padding: 72px var(--gutter) 48px; align-items: start; }
+  .split { display: flex; flex-direction: column; gap: 40px; }
+  .split__right { order: -1; width: 100%; }
+  .stage { width: min(100%, 320px); }
+  .row__name { font-size: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .row__fold, .panel, .row__mark, .row__head { transition-duration: 1ms !important; }
+  .panel { transform: none !important; }
+}
+
+</style>
+</head>
+
+<body>
+<main><section class="parcours" id="stage"></section></main>
+
+
+<script src="dust.js"></script>
+<script>
+/* DATES : hypothèse de travail, à remplacer par les vraies. */
+const TODAY = new Date();
+const EXPERIENCES = [
+  { id:'australie', employer:'Australie.GAD', role:'Audience planning', place:'Paris', start:'2025-09-01', end:null,
+    text:"Construction et analyse d'audiences traduites en personas actionnables pour le planning stratégique, la création et le commerce. Identification de nouvelles cibles sur des problématiques de conquête et de repositionnement. Cas d'étude sur les usages réels d'une plateforme de streaming. Conception et déploiement d'une extension Google Sheets automatisant le nettoyage des exports Kantar TGI : environ 1 heure gagnée par export." },
+  { id:'anyway', employer:'Anyway', role:'Co-fondateur et chef de production', place:null, start:'2024-09-01', end:'2025-07-31',
+    text:"Pilotage complet du produit éditorial : ligne éditoriale, casting des invités, rétroplanning de la production à la post-production. 8 épisodes, diffusion hebdomadaire. Itération de la saison 1 vers la saison 2 : collecte et analyse des retours utilisateurs, identification des frictions, décision de refonte du format et de la distribution. Résultats saison 1 : plus de 27 000 vues et 8 600 comptes atteints sur Instagram." },
+  { id:'havas', employer:'Havas Media', role:'Consultant média', place:'Puteaux', start:'2023-09-01', end:'2024-08-31',
+    text:"Pilotage de campagnes digitales (display, vidéo, social) de bout en bout : choix des régies, arbitrage des budgets, définition de la cible et des KPI, jusqu'au bilan client. Plus de 20 campagnes, secteur bancaire (Crédit Agricole, BForBank, Paylib). Optimisation hebdomadaire des performances et réallocation des budgets. Pilotage en autonomie d'un budget de plus de 50 k€ sur le lancement de la série Samuel (Arte)." }
+];
+
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const d = (s) => s ? new Date(s + 'T00:00:00') : TODAY;
+const months = (a,b) => (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth()) + (b.getDate()>=a.getDate()?1:0);
+const shortDates = (e) => e.end ? d(e.start).getFullYear() + ' à ' + d(e.end).getFullYear() : d(e.start).getFullYear() + " à aujourd'hui";
+
+/* ==========================================================================
+   LES PARTS, en fractions exactes
+
+   Plus d'arrondi au plus fort reste : la poussière n'a pas besoin qu'une
+   part tombe sur un nombre entier de particules. Chaque expérience reçoit
+   une plage [a, b] de l'intervalle chronologique, du plus récent au plus
+   ancien.
+   ======================================================================= */
+const VALID = EXPERIENCES.filter((e) => {
+  const ok = d(e.end) > d(e.start);
+  if (!ok) console.warn('Expérience ignorée, dates invalides :', e.id);
+  return ok;
+});
+const TOTAL = VALID.reduce((a, e) => a + months(d(e.start), d(e.end)), 0);
+const RANGE = (() => {
+  const o = {}; let acc = 0;
+  VALID.forEach((e) => {
+    const f = months(d(e.start), d(e.end)) / TOTAL;
+    o[e.id] = [acc, acc + f];
+    acc += f;
+  });
+  return o;
+})();
+const DATA = VALID;
+
+/* ==========================================================================
+   REPLI, si dust.js n'est pas chargé la page reste utilisable
+   ======================================================================= */
+const createDust = window.createDust || function () {
+  console.warn('dust.js absent : la scène est inerte, la liste reste fonctionnelle.');
+  return { setState() {}, resize() {}, destroy() {} };
+};
+
+/* ==========================================================================
+   RENDU
+   ======================================================================= */
+const section = document.getElementById('stage');
+
+function render() {
+  return `<div class="split">
+    <div class="split__left">
+      <h2 class="sr-only">Parcours</h2>
+      <ul class="list">` + DATA.map((e) => `
+        <li class="row" id="row-${e.id}" data-id="${e.id}">
+          <h3 style="margin:0">
+            <button class="row__head" type="button" aria-expanded="false" aria-controls="fold-${e.id}">
+              <span class="row__mark" aria-hidden="true"></span>
+              <span class="row__name">${e.employer}</span>
+              <span class="row__dates">${shortDates(e)}</span>
+              <span class="row__role">${e.role}${e.place ? ', ' + e.place : ''}</span>
+            </button>
+          </h3>
+          <div class="row__fold" id="fold-${e.id}" role="region" aria-label="${e.employer}">
+            <div class="row__foldInner"><div class="panel">
+              <p class="panel__text">${e.text}</p>
+            </div></div>
+          </div>
+        </li>`).join('') + `</ul>
+    </div>
+    <div class="split__right">
+      <div class="stage" id="stage-el"><canvas id="dust" aria-hidden="true"></canvas></div>
+    </div>
+  </div>`;
+}
+
+let current = null, dust = null, hovered = null;
+
+function apply() {
+  if (!dust) return;
+  /* Le clic fait autorité sur le survol : tant qu'une fiche est ouverte, la
+     poussière ne suit plus la souris. */
+  if (current) dust.setState({ range: RANGE[current], phase: 'selected' });
+  else if (hovered) dust.setState({ range: RANGE[hovered], phase: 'preview' });
+  else dust.setState({ range: null, phase: 'rest' });
+}
+
+function wire(modeKey) {
+  current = null; hovered = null;
+  const canvas = document.getElementById('dust');
+  dust = createDust(canvas, { mode: modeKey });
+
+  /* dust.js observe lui même le redimensionnement du canvas, inutile d'en
+     poser un second par dessus. */
+
+  section.querySelectorAll('.row').forEach((row) => {
+    const head = row.querySelector('.row__head');
+    head.addEventListener('click', () => { current = current === row.dataset.id ? null : row.dataset.id; paint(); });
+    head.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hovered = row.dataset.id; apply(); } });
+    head.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && hovered === row.dataset.id) { hovered = null; apply(); } });
+    head.addEventListener('focus', () => { hovered = row.dataset.id; apply(); });
+    head.addEventListener('blur', () => { if (hovered === row.dataset.id) { hovered = null; apply(); } });
+  });
+
+  openFromHash();
+  apply();
+}
+
+function paint() {
+  section.querySelectorAll('.row').forEach((row) => {
+    const open = row.dataset.id === current;
+    row.toggleAttribute('data-open', open);
+    row.querySelector('.row__head').setAttribute('aria-expanded', String(open));
+  });
+  apply();
+  const url = new URL(location.href);
+  url.hash = current || '';
+  history.replaceState(null, '', url.toString().replace(/#$/, ''));
+}
+
+function openFromHash() {
+  const id = location.hash.slice(1);
+  if (id && DATA.some((e) => e.id === id)) { current = id; paint(); }
+  else if (id) history.replaceState(null, '', location.pathname + location.search);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !current) return;
+  const head = document.querySelector('#row-' + current + ' .row__head');
+  current = null; paint(); head && head.focus();
+});
+document.addEventListener('pointerdown', (e) => {
+  if (!current) return;
+  if (e.target.closest('.row') || e.target.closest('#stage-el')) return;
+  current = null; paint();
+});
+
+/* ==========================================================================
+   MONTAGE
+
+   Le choix est fait : mode condense. Les deux autres comportements restent
+   dans dust.js, ils ne sont plus câblés ici.
+   ======================================================================= */
+section.innerHTML = render();
+wire('condense');
+</script>
+</body>
+</html>
