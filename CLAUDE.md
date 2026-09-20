@@ -15,3 +15,12 @@ Le remplacer par une **virgule** ou un **point**, selon ce que la phrase demande
 
 Le tiret demi-cadratin `–` reste toléré **uniquement** entre deux bornes
 numériques (`2020 – 2025`). Partout ailleurs, mêmes règles que ci-dessus.
+
+# Tests dans le navigateur
+
+Pour vérifier une page ou une interaction, utiliser le serveur MCP `playwright`
+plutôt qu'une capture d'écran PNG. Préférer `browser_snapshot` (arbre
+d'accessibilité) et `browser_evaluate` pour lire l'état réel du DOM, le texte
+et les styles calculés. Ne prendre une capture (`browser_take_screenshot`)
+qu'en dernier recours, pour un rendu visuel qui ne peut pas s'inspecter
+autrement (une animation, un dégradé, une mise en page complexe).
