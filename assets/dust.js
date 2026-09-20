@@ -222,11 +222,28 @@
 
   // Réglages propres à chaque mode. Tout ce qui distingue les trois
   // comportements est ici ou dans `appliquerMode`.
+  /* rotation : vitesse du champ au repos, en radians par seconde.
+     houle : facteur d'amplitude de la derive interne, rapporte a
+     AMPLITUDE_HOULE.
+
+     Les deux valeurs de condense ont ete remontees apres integration dans la
+     page. Elles etaient sous le seuil de perception : 0.012 rad/s est un tour
+     complet en neuf minutes, et une houle de 1,2 % du rayon vaut deux pixels
+     d'excursion sur une periode de dix a vingt secondes. La sphere se lisait
+     comme une image fixe, et le seul mouvement visible du parcours etait sa
+     reaction au survol. Or elle doit dire, avant tout survol, qu'elle est
+     vivante et donc qu'on peut agir dessus.
+     0,05 rad/s fait un tour en deux minutes, soit une dizaine de pixels par
+     seconde sur le bord : on voit que ca tourne sans suivre une particule.
+     Le mouvement reste coupe sous prefers-reduced-motion. */
   var MODES = {
-    condense: { rotation: 0.012, houle: 1.00 },
+    condense: { rotation: 0.050, houle: 1.00 },
     orbit:    { rotation: 0.100, houle: 0.85 },
     disperse: { rotation: 0.020, houle: 1.00 }
   };
+
+  /* Amplitude de base de la houle, en fraction du rayon. */
+  var AMPLITUDE_HOULE = 0.030;
 
   function serrer(v, min, max) {
     return v < min ? min : (v > max ? max : v);
@@ -602,7 +619,7 @@
 
         // --- Position dans la sphère -----------------------------------
         var t = tempsVie;
-        var amplitudeHoule = 0.012 * reglage.houle * facHoule;
+        var amplitudeHoule = AMPLITUDE_HOULE * reglage.houle * facHoule;
 
         var zz = 1 - 2 * u[i]
           + amplitudeHoule * Math.sin(freqU[i] * 6.2831853 * t + phaseU[i]);

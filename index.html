@@ -453,42 +453,50 @@ a { color: inherit; }
 /* ===========================================================================
    PROJETS
 
-   Écran complet qui défile à l'intérieur de lui-même : un seul projet net à
-   la fois, les autres flous. Le raisonnement de chaque valeur est dans le
-   prototype d'origine, prototypes/projets/index.html.
+   Un seul projet net à la fois, les autres flous. Le raisonnement de chaque
+   valeur est dans le prototype d'origine, prototypes/projets/index.html.
 
-   Ce que l'intégration change par rapport au prototype, et pourquoi :
+   La section n'a pas de défilement à elle : c'est la page qui défile, et la
+   loi du flou se calcule à partir de window.scrollY. Un défileur imbriqué
+   piégeait la molette dans la liste, et il fallait viser le halo pour en
+   sortir.
 
-   1. Le prototype était une page à lui seul, body en overflow hidden. Ici la
-      page continue de défiler, et c'est la section qui tient un défilement
-      interne. Conséquence : overscroll-behavior reste à auto et n'est pas
-      passé à contain. Contain enfermerait la molette dans la liste, et
-      Parcours ne serait plus atteignable qu'en cliquant le halo. La liste
-      chaîne donc vers la page à ses deux bouts.
-   2. Le bandeau fixe n'existait pas dans le prototype. La ligne de focus et
-      le fondu du haut descendent de sa hauteur, sinon le bandeau, opaque,
-      mangeait le fondu et coupait net le projet précédent au lieu de le
-      laisser s'effacer.
-   3. Le titre de section, demandé par US4 de specs/02-projets.md, est posé
-      en surimpression dans la bande libre entre le bandeau et la ligne de
-      focus. Il s'efface au premier défilement.
+   Ce qui tient l'écran ensemble, maintenant que rien n'est enfermé :
+
+   1. Le calage sur les projets passe par le snap du document, en proximity.
+      Mandatory est exclu : les seuls points de calage de la page sont les
+      lignes de projet, et un snap strict interdirait de s'arrêter ailleurs,
+      donc de lire l'accueil ou le parcours.
+   2. La ligne de focus descend de la hauteur du bandeau fixe, qui n'existait
+      pas dans le prototype. Sans cela le bandeau, opaque, mangeait le fondu
+      du haut et coupait net le projet précédent au lieu de le laisser
+      s'effacer.
+   3. Le titre de section, US4 de specs/02-projets.md, occupe exactement la
+      bande que la ligne de focus laisse libre. Il est dans le flux, donc il
+      s'efface de lui-même au premier défilement, sans une ligne de script.
+   4. Le fondu du haut et le halo du bas sont fixes dans la fenêtre, et ne
+      s'affichent que pendant l'écran Projets : le premier est un voile de
+      parchemin, le second annonce l'Ember de Parcours, aucun des deux n'a de
+      sens ailleurs.
    ======================================================================== */
+
 .projets {
   /* La ligne de focus est écrite en dur, et non en calc() : le script la lit
      en parseFloat sur la propriété personnalisée, et une custom property
      n'est pas résolue à la lecture. 196 = 72 de bandeau + les 124 du
      prototype. Même chose pour la version mobile, 164 = 64 + 100. */
   --focus-top: 196px;
-  --fade-top: 52px;
+  --fade-top: 96px;
   --halo-h: 140px;
   --header-h: 72px;
 
   /* Le flou est une distance : il se mesure à la taille de l'écran. */
   --blur-scale: 1;
 
-  /* La hauteur de ligne se déduit de la hauteur d'écran. Le vide sous le
-     dernier projet est fixé à 86px et c'est la hauteur de ligne qui en
-     découle, faute de quoi ce reste explose dès que l'écran s'allonge. */
+  /* La hauteur de ligne se déduit de la hauteur d'écran : un projet net plus
+     la moitié du suivant tiennent entre la ligne de focus et le haut du halo,
+     86px de respiration déduits. Une hauteur figée donnerait un écran juste
+     sur un portable et creux sur un grand écran. */
   --row-h: clamp(
     240px,
     calc((100svh - var(--focus-top) - var(--halo-h) - 86px) / 1.5),
@@ -496,92 +504,77 @@ a { color: inherit; }
   );
 
   position: relative;
-  height: 100svh;
-  overflow: hidden;
+  /* La bande entre le bandeau et la ligne de focus. Elle ne porte plus rien :
+     le titre de section, demandé par US4 de specs/02-projets.md, a été
+     retiré. Ce que le visiteur voit en arrivant, c'est un projet, pas une
+     étiquette qui le nomme. La bande reste, car c'est elle qui pose le
+     premier projet sur sa ligne de focus. */
+  padding-top: var(--focus-top);
+  /* Ce que le dernier projet laisse derrière lui. Calé sur la ligne de focus,
+     son bas tombe à focus-top + row-h ; le complément amène le bas de la
+     section exactement au bas de la fenêtre, donc Parcours commence hors
+     champ et n'apparaît jamais sous un projet encore net. */
+  padding-bottom: calc(100svh - var(--focus-top) - var(--row-h));
   border-top: 1px solid var(--color-hairline);
 }
 
-.projets__scroller {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-snap-type: y mandatory;
-  /* Le projet net se cale haut, sur la ligne de focus, et non au centre :
-     c'est ce décalage qui donne au fondu du haut quelque chose à effacer et
-     au projet précédent de quoi dépasser. Le recalage au clic vise la même
-     ligne, il n'y a donc qu'une seule définition du point de focus. */
-  scroll-padding-top: var(--focus-top);
-  /* Le défilement programmé est animé par le script, pas par le navigateur :
-     scroll-behavior reste auto pour ne pas doubler les deux. */
-  scroll-behavior: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+/* ---- Chrome de l'écran, fondu du haut et halo du bas --------------------
+   Les deux sont fixes dans la fenêtre et n'appartiennent qu'à Projets. Ils
+   arrivent quand l'accueil a entièrement quitté l'écran, exactement comme
+   quand on clique l'ancre du hero, et repartent dès que Parcours entre :
+   un voile de parchemin et une rampe Ember posés sur l'orange plein de
+   Parcours ne seraient plus que des salissures.
+   ---------------------------------------------------------------------- */
+.projets__fade,
+.outro {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 260ms var(--ease-out), visibility 0s linear 260ms;
 }
-.projets__scroller::-webkit-scrollbar { display: none; }
-
-/* Cas limite : fenêtre trop courte pour une ligne entière. Sous ce seuil le
-   snap strict est coupé, la liste redevient librement défilable, le flou
-   continue de se calculer par rapport au point de focus. */
-@media (max-height: 560px) {
-  .projets__scroller { scroll-snap-type: none; }
-}
-
-.projets__list {
-  position: relative;
-  padding-top: var(--focus-top);
-  /* De quoi amener le dernier projet à sa demi-ligne, jamais moins que le
-     halo. Le calcul peut devenir négatif sur une fenêtre haute, d'où max(). */
-  padding-bottom: max(
-    var(--halo-h),
-    calc(100svh - var(--focus-top) - 1.5 * var(--row-h))
-  );
+.projets[data-chrome] .projets__fade,
+.projets[data-chrome] .outro {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 260ms var(--ease-out), visibility 0s;
 }
 
 /* Le fondu du haut. Un voile de parchemin posé par-dessus, pas un mask-image
-   sur le défileur : celui-ci porte déjà cinq filtres de flou, lui ajouter un
+   sur la page : les lignes portent déjà cinq filtres de flou, leur ajouter un
    masque forcerait une couche de composition de plus pour un résultat
-   identique sur un fond plat. Il commence sous le bandeau. */
+   identique sur un fond plat. Il commence sous le bandeau, dont il reprend
+   exactement la couleur : la jonction des deux est invisible.
+
+   La rampe compte autant que la hauteur. En trois arrêts, elle tombait de
+   0,90 à 0 en vingt-neuf pixels : sur du parchemin cela ne se voyait pas,
+   mais posée sur un visuel saturé la marche devenait une bande plus claire à
+   bord franc en travers de l'image. Huit arrêts et une longue traîne, et il
+   n'y a plus de bord à voir. La hauteur passe de 52 à 96px pour la même
+   raison : le voile doit avoir la place de s'éteindre. Il finit bien
+   au-dessus de la ligne de focus, le projet net n'est jamais lavé.
+
+   Le voile part du haut de la fenêtre, pas du bas du bandeau, et reste opaque
+   sur toute la hauteur de celui-ci. Le bandeau se masque au défilement vers
+   le bas : un voile qui commençait sous lui laissait alors les projets se
+   faire trancher net par le bord de la fenêtre. Quand le bandeau est là, il
+   couvre la partie opaque et rien ne change. Les arrêts sont écrits en
+   longueurs et non en pourcentages, pour que la rampe tombe au même endroit
+   sur les deux largeurs, où le bandeau et le fondu ne mesurent pas pareil. */
 .projets__fade {
-  position: absolute;
-  inset: var(--header-h) 0 auto 0;
-  height: var(--fade-top);
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: calc(var(--header-h) + var(--fade-top));
   pointer-events: none;
   z-index: 2;
   background: linear-gradient(to bottom,
-    var(--color-parchment-canvas) 0%,
-    rgba(255, 250, 235, 0.90) 44%,
+    rgb(255, 250, 235) 0,
+    rgb(255, 250, 235) var(--header-h),
+    rgba(255, 250, 235, 0.98) calc(var(--header-h) + 0.18 * var(--fade-top)),
+    rgba(255, 250, 235, 0.92) calc(var(--header-h) + 0.32 * var(--fade-top)),
+    rgba(255, 250, 235, 0.80) calc(var(--header-h) + 0.46 * var(--fade-top)),
+    rgba(255, 250, 235, 0.60) calc(var(--header-h) + 0.60 * var(--fade-top)),
+    rgba(255, 250, 235, 0.36) calc(var(--header-h) + 0.74 * var(--fade-top)),
+    rgba(255, 250, 235, 0.14) calc(var(--header-h) + 0.88 * var(--fade-top)),
     rgba(255, 250, 235, 0) 100%);
-}
-
-/* ---- Titre de section, US4 ---------------------------------------------
-   Visible à l'arrivée, effacé dès que le visiteur commence à parcourir. Il
-   ne prend la main sur rien : pointer-events à none, il vit dans la bande
-   que la ligne de focus laisse libre sous le bandeau.
-   ---------------------------------------------------------------------- */
-.projets__head {
-  position: absolute;
-  inset: var(--header-h) 0 auto 0;
-  z-index: 3;
-  padding-top: 24px;
-  pointer-events: none;
-  transition: opacity 200ms var(--ease-out);
-}
-.projets__head[data-gone] { opacity: 0; }
-
-.projets__label {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: var(--weight-lede);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-.projets__title {
-  margin: 0;
-  font-size: 34px;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  font-weight: var(--weight-title);
 }
 
 /* ===========================================================================
@@ -589,15 +582,17 @@ a { color: inherit; }
    Le flou et l'opacité de .row__inner sont écrits par le script, voir LA LOI
    DU FLOU dans le script.
    ======================================================================== */
+/* Le calage sur un projet n'est pas confié au snap CSS. Il a été essayé, et
+   il n'y a pas de réglage qui tienne : les seuls points de calage de la page
+   sont les cinq projets, donc en mandatory la page ne peut plus s'arrêter
+   dans l'accueil ni dans le parcours, et en proximity le navigateur rattrape
+   depuis deux cents pixels, ce qui retenait la page au dernier projet au lieu
+   de la laisser descendre vers Parcours. Le calage est donc écrit dans le
+   script, avec une garde qui le désactive aux deux bouts de la liste. Voir
+   settle() et RECENTRAGE. */
 .row {
   position: relative;
   height: var(--row-h);
-  scroll-snap-align: start;
-  /* Jamais deux lignes en une impulsion. Le coût est réel, une impulsion
-     longue ne traverse plus la liste. Mais c'est exactement la thèse de
-     l'écran, un seul sujet à la fois, et avec trois à six projets le coût est
-     borné. Sur une liste de trente, la réponse serait l'inverse. */
-  scroll-snap-stop: always;
   display: block;
   width: 100%;
   border: 0;
@@ -613,8 +608,15 @@ a { color: inherit; }
 /* La loi du flou est écrite par le script directement sur cet élément, en
    filter et en opacity, et non en CSS depuis une custom property posée sur la
    ligne : écrire une custom property sur la ligne invalidait le style de tout
-   son sous-arbre, grille, titre et SVG compris, à chaque image. */
-.row__inner { height: 100%; }
+   son sous-arbre, grille, titre et SVG compris, à chaque image.
+   contain: paint borne la zone à repeindre à la boîte de la ligne. Sans lui,
+   changer le rayon d'un flou plein écran pendant que la page défile laissait
+   des tuiles de l'image précédente sur le visuel, un rectangle plus clair en
+   travers du projet suivant. */
+.row__inner {
+  height: 100%;
+  contain: paint;
+}
 
 /* Une seule situation où le dénettage est animé : le clic sur une ligne
    floue. Le rayon de flou, lui, tombe d'un coup à zéro, il n'est pas
@@ -670,7 +672,7 @@ a { color: inherit; }
 }
 
 /* Deux lignes maximum puis troncature : la hauteur de ligne ne bouge pas,
-   sinon le snap devient imprévisible.
+   sinon le calage devient imprévisible.
    Pas de soulignement permanent du projet net. Le flou dit déjà lequel est le
    sujet, un trait en plus serait un second marqueur pour une seule
    information. */
@@ -711,6 +713,10 @@ a { color: inherit; }
   background: var(--color-soft-butter);
   aspect-ratio: 16 / 10;
   width: 100%;
+  /* Le visuel est la seule surface de la ligne qui bouge en permanence, entre
+     le zoom lent et le dénettage de chargement. Isolé, il ne force pas le
+     repeint du texte à côté de lui. */
+  isolation: isolate;
 }
 .visual__img {
   position: absolute;
@@ -746,29 +752,21 @@ a { color: inherit; }
   animation: slow-zoom 12s linear 420ms forwards;
 }
 
-/* Le dernier projet ne monte pas jusqu'à la ligne de focus, il s'arrête une
-   demi-ligne plus bas. Aller jusqu'au bout laissait un écran entier de vide
-   sous lui ; s'arrêter au ras du halo ne lui laissait que 64px de course, et
-   cliquer l'avant-dernier ne produisait alors aucun mouvement visible, donc
-   aucune confirmation. Une demi-ligne, soit 150px, se voit sans rouvrir le
-   trou. La même valeur est reprise par targetTop() dans le script ; les deux
-   doivent rester d'accord, sinon la liste tremble. */
-.row:last-of-type { scroll-margin-top: calc(var(--row-h) / 2); }
-
 /* ===========================================================================
    LA SORTIE VERS PARCOURS, le halo.
 
-   Ce que le halo doit faire : annoncer que l'écran suivant est entièrement
-   Ember sans manger l'écran des projets. C'est un panneau de direction, pas
-   un décor. Il ne défile jamais.
+   Collé au bas de la fenêtre, il ne défile pas avec la liste : c'est un
+   panneau de direction, pas un décor, et un panneau qui s'en va quand on
+   avance ne sert à rien.
    Rampe de 140px, plafond à 30%. En dessous de 140 la rampe redevient un bord
    et perd ce qui fait le halo, au-dessus elle mord sur le projet suivant.
    Le mot est en Suie, jamais en Papier : #fffaeb sur #fa520f tombe à 2,9:1 et
    échoue AA. Suie sur un halo à 30% tient 12:1.
    ======================================================================== */
 .outro {
-  position: absolute;
+  position: fixed;
   inset: auto 0 0 0;
+  z-index: 4;
   height: var(--halo-h);
   display: flex;
   align-items: flex-end;
@@ -819,7 +817,7 @@ a { color: inherit; }
     --focus-top: 164px;     /* 64 de bandeau, plus les 100 du prototype */
     --header-h: 64px;
     --halo-h: 112px;
-    --fade-top: 36px;
+    --fade-top: 64px;
     /* Le flou reste proportionnel à l'écran, mais le facteur remonte à 0,75 :
        la rampe desktop a été divisée par près de trois, la couper encore de
        moitié rendrait le flou invisible sur téléphone. */
@@ -834,8 +832,6 @@ a { color: inherit; }
   .stack { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .f-name { font-size: 28px; letter-spacing: -0.024em; }
   .f-theme { font-size: 15px; }
-  .projets__title { font-size: 22px; }
-  .projets__head { padding-top: 18px; }
 }
 
 /* ===========================================================================
@@ -994,7 +990,8 @@ a { color: inherit; }
   .visual__img,
   .f-name__u,
   .row__grid,
-  .projets__head,
+  .projets__fade,
+  .outro,
   .outro__arrow { transition-duration: 1ms !important; }
   /* Exception : le denettage garde ses 120ms. C'est le seul accuse de
      reception du clic sur une ligne floue, le faire basculer d'un coup
@@ -1086,19 +1083,10 @@ a { color: inherit; }
        visuel SVG généré, un flou piloté image par image, et un état net ou
        flou qui n'a aucun sens sans JavaScript. Sans lui, la section se réduit
        à son titre, et l'ancre Parcours du halo reste atteignable. -->
-  <section class="projets" id="projets" tabindex="-1">
-    <div class="projets__scroller" id="projets-scroller">
-      <div class="projets__list" id="projets-list"></div>
-    </div>
+  <section class="projets" id="projets" tabindex="-1" aria-label="Projets">
+    <div class="projets__list" id="projets-list"></div>
 
     <div class="projets__fade" aria-hidden="true"></div>
-
-    <div class="projets__head" id="projets-head">
-      <div class="wrap">
-        <p class="projets__label">Projets</p>
-        <h2 class="projets__title">Ce que j'ai construit.</h2>
-      </div>
-    </div>
 
     <div class="outro">
       <a class="outro__link" href="#parcours" id="outro-parcours">
@@ -1427,6 +1415,10 @@ const onScroll = [];
 /* ==========================================================================
    Projets. Un seul projet net à la fois, les autres flous.
 
+   La section n'a pas de défilement à elle : tout se calcule à partir de
+   window.scrollY, et le calage sur un projet est confié au snap du document,
+   en proximity. Voir le bloc PROJETS de la feuille de style.
+
    OUVERTURE D'UNE PAGE PROJET, non intégrée. Le prototype simulait la page
    dans le même document et faisait voyager le visuel en View Transitions.
    La vraie page projet est traitée par specs/04-page-projet.md et n'existe
@@ -1442,10 +1434,8 @@ const onScroll = [];
    ======================================================================= */
 (() => {
   const section = document.getElementById('projets');
-  const scroller = document.getElementById('projets-scroller');
   const list = document.getElementById('projets-list');
-  const titre = document.getElementById('projets-head');
-  if (!section || !scroller || !list) return;
+  if (!section || !list) return;
 
   const PROJETS = [
     { date: '2024 à 2025', nom: 'Audience Planning', theme: 'Ciblage média',
@@ -1503,12 +1493,13 @@ const onScroll = [];
 
   let rows = [];
   let inners = [];          /* .row__inner, porteurs du flou */
-  let geom = [];            /* centre et hauteur de chaque ligne, en contenu */
+  let geom = [];            /* centre et hauteur de chaque ligne, en document */
   let applied = [];         /* dernière valeur écrite, pour ne pas réécrire */
   let netIndex = 0;
-  let focusY = 0;           /* ordonnée du centre du projet net, depuis le
-                               haut du défileur */
+  let focusY = 0;           /* ordonnée de la ligne de focus, depuis le haut
+                               de la fenêtre, plus une demi-ligne */
   let blurScale = 1;
+  let bande = [0, 0];       /* plage de défilement où l'écran est à l'écran */
 
   function build() {
     PROJETS.forEach((p, i) => {
@@ -1547,20 +1538,22 @@ const onScroll = [];
      là-dessous, ce sont les déplacements, pas la lecture.
 
      Flouter cinq lignes plein écran est de loin l'opération la plus chère de
-     la page. Trois décisions pour qu'elle tienne le budget d'image :
+     la page. Quatre décisions pour qu'elle tienne le budget d'image :
 
-     1. Zéro lecture de géométrie pendant le défilement. La position de chaque
+     1. Rien n'est calculé quand l'écran n'est pas à l'écran. La page défile
+        sur trois hauteurs de fenêtre, la section n'en occupe qu'une partie.
+     2. Zéro lecture de géométrie pendant le défilement. La position de chaque
         ligne est mesurée une fois par construction et par redimensionnement.
         Un getBoundingClientRect par ligne et par image, entrelacé avec les
         écritures de style, forcerait cinq recalculs de mise en page
         synchrones par image.
-     2. Le rayon de flou est échantillonné par paliers. Un flou coûte une
+     3. Le rayon de flou est échantillonné par paliers. Un flou coûte une
         rastérisation complète à chaque valeur distincte de rayon : en continu
         c'est soixante par seconde et par ligne, par paliers c'est douze au
         plus sur toute la course d'une ligne. L'opacité reste continue, elle :
         le compositeur la donne pour rien, et c'est elle qui porte la fluidité
         perçue du geste.
-     3. Rien n'est écrit si la valeur n'a pas bougé. Les lignes hors champ
+     4. Rien n'est écrit si la valeur n'a pas bougé. Les lignes hors champ
         sont au plafond et ne reçoivent plus aucune écriture.
 
      Aucun état intermédiaire ne reste figé à l'arrêt : settle() repeint en
@@ -1584,14 +1577,27 @@ const onScroll = [];
   const FADE_MAX   = 0.30;
 
   function measure() {
+    if (!rows.length) return;
     /* Le projet net a son haut sur la ligne de focus, donc son centre une
        demi-ligne plus bas. Tout le reste en découle. */
-    focusY = cssVar('--focus-top') + (rows[0] ? rows[0].offsetHeight / 2 : 0);
+    focusY = cssVar('--focus-top') + rows[0].offsetHeight / 2;
     /* Le flou se remesure ici, et pas une fois pour toutes : la bascule
        desktop vers mobile passe par une media query, pas par un rechargement. */
     blurScale = cssVar('--blur-scale') || 1;
     applied.forEach((a) => { a.blur = -1; a.fade = -1; });
-    geom = rows.map((r) => ({ c: r.offsetTop + r.offsetHeight / 2, h: r.offsetHeight || 1 }));
+
+    const y = window.scrollY;
+    geom = rows.map((r) => {
+      const b = r.getBoundingClientRect();
+      return { c: b.top + y + b.height / 2, h: b.height || 1 };
+    });
+    /* La plage de défilement pendant laquelle une ligne au moins est visible,
+       une hauteur de ligne de marge de part et d'autre. Hors de là, peindre
+       ne servirait à rien. */
+    bande = [
+      geom[0].c - focusY - geom[0].h,
+      geom[geom.length - 1].c - focusY + geom[0].h
+    ];
   }
 
   let queued = false;
@@ -1606,13 +1612,7 @@ const onScroll = [];
     queued = false;
     if (!geom.length) return;
 
-    /* En bout de course, le dernier projet ne rejoint pas la ligne de focus.
-       À son point d'arrêt il est à égale distance de l'avant-dernier, donc la
-       règle du plus proche ne peut pas les départager : la référence se
-       déplace sur lui. Sans cela il ne serait jamais élu et l'avant-dernier
-       resterait net à côté d'un dernier projet parfaitement visible. */
-    const atEnd = scroller.scrollTop >= targetTop(geom.length - 1) - 2;
-    const c = atEnd ? geom[geom.length - 1].c : scroller.scrollTop + focusY;
+    const c = window.scrollY + focusY;
     let best = 0, bestD = Infinity;
     const ds = geom.map((g, i) => {
       const d = Math.abs(g.c - c) / g.h;
@@ -1650,18 +1650,15 @@ const onScroll = [];
   }
 
   /* ==========================================================================
-     Événements de défilement du défileur interne. La page, elle, continue de
-     défiler par-dessus : le chaînage aux deux bouts de la liste est ce qui
-     laisse arriver depuis l'accueil et repartir vers Parcours au geste.
+     Défilement de la page.
      ======================================================================= */
   let lastScrollAt = 0;
   let endTimer;
 
-  scroller.addEventListener('scroll', () => {
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y < bande[0] || y > bande[1]) return;
     lastScrollAt = performance.now();
-    /* US4 : le titre de section s'efface dès que le visiteur commence à
-       parcourir, et revient s'il remonte en tête. */
-    if (titre) titre.toggleAttribute('data-gone', scroller.scrollTop > 8);
     requestPaint();
     clearTimeout(endTimer);
     endTimer = setTimeout(settle, 140);
@@ -1670,10 +1667,31 @@ const onScroll = [];
   /* Aucun état intermédiaire ne doit rester figé quand le défilement
      s'arrête. Les revendications tombent avant le repeint, pas après : sinon
      une ligne revendiquée puis abandonnée en route resterait nette hors du
-     centre jusqu'au défilement suivant. */
+     centre jusqu'au défilement suivant.
+
+     C'est aussi ici que le calage est garanti. Le snap du document est en
+     proximity, faute de pouvoir être strict sans enfermer la page : il ne se
+     déclenche qu'à l'approche d'un point de calage, et une impulsion qui
+     s'arrête à mi-chemin laisse deux projets à demi nets côte à côte, ce qui
+     est exactement ce que l'écran ne doit jamais montrer. Cent quarante
+     millisecondes après le dernier événement, donc après le calage du
+     navigateur s'il a eu lieu, on ramène sur le projet le plus proche.
+
+     La garde est ce qui empêche ce rattrapage de devenir un piège : il
+     n'agit qu'entre le premier et le dernier point de calage. En deçà on
+     remonte vers l'accueil, au-delà on descend vers Parcours, et dans les
+     deux cas la page doit être libre de partir. */
+  const CALAGE_TOLERANCE = 2;      /* px, en deçà il n'y a rien à rattraper */
+
   function settle() {
     rows.forEach((r) => r.removeAttribute('data-claimed'));
     paint(true);
+
+    if (tween || !geom.length) return;
+    const y = window.scrollY;
+    if (y <= targetTop(0) || y >= targetTop(geom.length - 1)) return;
+    const to = targetTop(netIndex);
+    if (Math.abs(y - to) > CALAGE_TOLERANCE) centerRow(netIndex, true);
   }
 
   let resizeQueued = false;
@@ -1684,6 +1702,35 @@ const onScroll = [];
   });
 
   /* ==========================================================================
+     LE CHROME DE L'ÉCRAN, fondu du haut et halo du bas.
+     Ils arrivent quand l'accueil a entièrement quitté l'écran, exactement
+     comme quand on clique l'ancre du hero, et repartent dès que Parcours
+     entre : posés sur l'orange plein de Parcours, ils ne seraient plus que
+     des salissures.
+     ======================================================================= */
+  (() => {
+    const accueil = document.getElementById('accueil');
+    const parcours = document.getElementById('parcours');
+    if (!accueil || !parcours) { section.setAttribute('data-chrome', ''); return; }
+
+    let accueilParti = false, parcoursEntre = false;
+    const maj = () => section.toggleAttribute('data-chrome', accueilParti && !parcoursEntre);
+
+    new IntersectionObserver(([e]) => { accueilParti = !e.isIntersecting; maj(); },
+      { threshold: 0 }).observe(accueil);
+
+    /* Parcours ne compte comme entré que lorsqu'il dépasse le haut du halo,
+       et non dès son premier pixel : sur le dernier projet, le bas de la
+       section tombe pile au bas de la fenêtre, et sans cette marge le halo
+       disparaissait sur le projet où l'on a justement le plus besoin de
+       savoir par où sortir. La marge est figée sur la valeur large ; sur
+       téléphone le halo mesure 112px et part donc un peu plus tôt, ce qui ne
+       se voit pas. */
+    new IntersectionObserver(([e]) => { parcoursEntre = e.isIntersecting; maj(); },
+      { threshold: 0, rootMargin: '0px 0px -141px 0px' }).observe(parcours);
+  })();
+
+  /* ==========================================================================
      RECENTRAGE.
      scrollIntoView({ behavior: 'smooth' }) est remplacé par un défilement
      piloté image par image. Trois raisons : sa durée appartient au navigateur
@@ -1692,10 +1739,9 @@ const onScroll = [];
      aucun des trois moteurs. Ici la durée est connue, la courbe est celle du
      design system, et le premier geste rend la main immédiatement.
 
-     Le snap est suspendu pendant la course : avec scroll-snap-type mandatory,
-     toute écriture de scrollTop est recalée sur le point de snap le plus
-     proche, ce qui hacherait le mouvement. Il est rétabli à l'arrivée, sur un
-     scrollTop qui est déjà exactement un point de snap, donc sans saut.
+     C'est ce même défilement qui sert au calage après une impulsion libre,
+     depuis settle() : la course est interruptible au premier geste, donc un
+     rattrapage n'enferme jamais personne.
      ======================================================================= */
 
   /* Solveur de cubic-bezier, pour que le script suive exactement --ease-out
@@ -1726,26 +1772,22 @@ const onScroll = [];
     if (!tween) return;
     cancelAnimationFrame(tween);
     tween = 0;
-    scroller.style.scrollSnapType = '';
     paint(true);
   }
   ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((t) =>
     window.addEventListener(t, stopTween, { passive: true }));
 
   function targetTop(i) {
-    const max = scroller.scrollHeight - scroller.clientHeight;
-    /* Le dernier projet s'arrête une demi-ligne avant la ligne de focus.
-       Même valeur que le scroll-margin-top posé en CSS sur :last-of-type. */
-    const off = (i === geom.length - 1) ? geom[i].h / 2 : 0;
-    return Math.max(0, Math.min(geom[i].c - focusY - off, max));
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    return Math.max(0, Math.min(geom[i].c - focusY, max));
   }
 
   function centerRow(i, animate) {
     stopTween();
     const to = targetTop(i);
-    if (!animate || reduced()) { scroller.scrollTop = to; paint(true); return; }
+    if (!animate || reduced()) { window.scrollTo(0, to); paint(true); return; }
 
-    const from = scroller.scrollTop;
+    const from = window.scrollY;
     const dist = to - from;
     if (Math.abs(dist) < 1) { paint(true); return; }
 
@@ -1753,15 +1795,13 @@ const onScroll = [];
        Au-delà on ne perçoit plus un rattrapage mais un transport. */
     const dur = Math.min(240 + Math.abs(dist) / geom[i].h * 90, 440);
     const t0 = performance.now();
-    scroller.style.scrollSnapType = 'none';
 
     const step = (now) => {
       const t = Math.min((now - t0) / dur, 1);
-      scroller.scrollTop = from + dist * easeOut(t);
+      window.scrollTo(0, from + dist * easeOut(t));
       if (t < 1) { tween = requestAnimationFrame(step); return; }
       tween = 0;
-      scroller.scrollTop = to;
-      scroller.style.scrollSnapType = '';
+      window.scrollTo(0, to);
       paint(true);
     };
     tween = requestAnimationFrame(step);
@@ -1800,8 +1840,8 @@ const onScroll = [];
   });
 
   /* ==========================================================================
-     Sortie vers Parcours. Le halo est la sortie explicite ; le chaînage du
-     défilement en est une seconde, au geste.
+     Sortie vers Parcours. Le halo est la sortie explicite ; à la fin de la
+     liste le défilement continue de lui-même, il n'y a plus rien à franchir.
      ======================================================================= */
   const outro = document.getElementById('outro-parcours');
   if (outro) {
@@ -1813,18 +1853,15 @@ const onScroll = [];
     });
   }
 
+  /* Les métriques changent quand la police variable arrive : on remesure. */
+  document.fonts.ready.then(() => { measure(); paint(true); });
+  build();
+
   /* US6, lien profond vers un projet. Une ancre morte ramène en tête de
      section, sans message. */
   const m = /^#projet-(\d+)$/.exec(location.hash);
   const i = m ? +m[1] - 1 : -1;
-
-  /* Les métriques changent quand la police variable arrive : on remesure. */
-  document.fonts.ready.then(() => { measure(); paint(true); });
-  build();
-  if (i >= 0 && i < rows.length) {
-    section.scrollIntoView({ block: 'start' });
-    centerRow(i, false);
-  }
+  if (i >= 0 && i < rows.length) centerRow(i, false);
 })();
 </script>
 </body>
