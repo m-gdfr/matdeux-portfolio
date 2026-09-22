@@ -1384,6 +1384,33 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
 .pj-result .pj-chap { padding: 0; }
 .pj-result .pj-chap__h { color: var(--pj-result-ink); text-decoration: none; }
 .pj-result p { max-width: 46ch; color: var(--pj-result-ink); }
+/* Sur ce fond, un liseré Ember n'existe pas. */
+.pj-result :focus-visible { outline-color: var(--color-papier); }
+/* Les sorties du bloc Résultat. Deux liens au plus, vers la preuve : le
+   livrable consultable en ligne, et le code qui le produit. Ils ferment la
+   page, ils ne concurrencent pas le texte. */
+.pj-sorties { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.pj-lien {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px; border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--pj-result-ink); color: var(--pj-result-bg);
+  font-size: 15px; font-weight: var(--weight-lede); line-height: 1;
+  text-decoration: none;
+  transition: opacity 180ms ease, background-color 180ms ease;
+}
+.pj-lien:hover, .pj-lien:focus-visible { opacity: 0.78; }
+/* Le code est une seconde lecture, pas la preuve. Le contour le dit sans le
+   reléguer : même gabarit, une encre en moins. L'opacité ne descend pas sous
+   0.7 : le filet est le seul contour du bouton, il lui faut ses 3:1. */
+.pj-lien--code {
+  background: transparent; color: var(--pj-result-ink);
+  border-color: rgba(255, 250, 235, 0.7);
+}
+.pj-lien--code:hover, .pj-lien--code:focus-visible {
+  opacity: 1; background: rgba(255, 250, 235, 0.1);
+}
+.pj-lien .icon--github { width: 16px; height: 16px; flex: none; }
 .pj-figs { display: flex; flex-wrap: wrap; gap: 18px 40px; margin: 0 0 20px; padding: 0; list-style: none; }
 .pj-fig__n {
   display: block;
@@ -2406,6 +2433,25 @@ const pageProjet = (() => {
       </div>`;
   }
 
+  /* Les sorties du chapitre Résultat. Le libellé du dépôt n'est pas saisi :
+     un lien vers du code se nomme toujours pareil, autant le poser ici. La
+     rangée n'existe pas quand aucun des deux liens n'est écrit. */
+  function sorties(b) {
+    const l = [];
+    if (b.lien) {
+      l.push(`<a class="pj-lien" href="${b.lien.url}"
+         target="_blank" rel="noopener noreferrer">${b.lien.libelle}</a>`);
+    }
+    if (b.github) {
+      l.push(`<a class="pj-lien pj-lien--code" href="${b.github}"
+         target="_blank" rel="noopener noreferrer">
+        <svg class="icon icon--github" viewBox="0 0 16 15.61" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+        </svg>Le code sur GitHub</a>`);
+    }
+    return l.length ? `<div class="pj-sorties">${l.join('')}</div>` : '';
+  }
+
   function chapitre(b) {
     const figs = b.figs ? `<ul class="pj-figs">${b.figs.map((f) =>
       `<li><span class="pj-fig__n">${f.n}</span><span class="pj-fig__l">${f.l}</span></li>`
@@ -2422,6 +2468,7 @@ const pageProjet = (() => {
           ${callout}
           ${figs}
           ${(b.p || []).map((t) => `<p>${t}</p>`).join('')}
+          ${sorties(b)}
         </div>
       </section>`;
   }

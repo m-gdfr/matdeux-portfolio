@@ -11,20 +11,23 @@ saisit dans le navigateur, l'agent relit et écrit le dépôt. Le dépôt et la 
 sont deux copies de la même chose : la première étape de chaque passage est de
 les remettre d'accord.
 
-**Page :** https://claude.ai/artifact/VwYXDzA8VKWcsgMxDCbgtE
+**Page :** https://claude.ai/artifact/EGqdVt2eHjibeXxGQBgP8e
 (outils `Artifact` pour l'ouvrir, `ArtifactData` pour lire et écrire ses lignes)
 
 | Collection | Fichier | Champs écrits, dans cet ordre |
 |---|---|---|
 | `projets` | `content/projets.json` | id, date, nom, client, a, b, c, media |
 | `parcours` | `content/parcours.json` | id, nom, dates, role, body |
-| `page-projet` | `content/page-projet.json` | id, chapo, contexte, enjeu, demarche, resultat, perimetre, media |
+| `page-projet` | `content/page-projet.json` | id, chapo, contexte, enjeu, demarche, resultat, perimetre, lien, github, media |
 
 Le document porte un identifiant tiré au hasard par la page ; c'est le champ
 `id` de son corps qui compte, jamais l'identifiant du document. Pousser vers la
 page se fait donc en écrivant sur l'identifiant existant, sinon l'entrée est
 dédoublée. Le champ `ordre` range la liste, il ne part pas dans le JSON.
-`media` est omis quand il est absent ou vide.
+`lien`, `github` et `media` sont facultatifs : ils sont omis quand ils sont
+absents ou vides, jamais écrits sous forme de coquille. `lien` porte son
+libellé parce qu'il nomme une chose différente à chaque projet ; `github` est
+une simple URL, le gabarit pose son libellé.
 
 `build.mjs` est le seul juge de la validité. La page prévient, le build trie.
 

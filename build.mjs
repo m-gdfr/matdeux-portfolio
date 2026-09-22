@@ -339,6 +339,41 @@ if (Array.isArray(pageProjet)) {
       validateMedia(pp.media, `${ctx}.media`, true);
     }
 
+    /* lien et github : facultatifs, indépendants l'un de l'autre. Un projet
+       dont le livrable est consultable en ligne, ou dont le code est ouvert,
+       porte une sortie cliquable sous le bloc Résultat. Le texte des blocs
+       étant échappé, c'est le seul endroit où une URL peut vivre.
+
+       lien porte son libellé, parce qu'il nomme une chose différente à chaque
+       projet. github n'en porte pas : un lien vers du dépôt se nomme toujours
+       pareil, le gabarit le pose. */
+    if (pp.lien != null) {
+      const lctx = `${ctx}, lien`;
+      if (typeof pp.lien !== 'object' || Array.isArray(pp.lien)) {
+        err(`${lctx} : un objet { libelle, url } est attendu.`);
+      } else {
+        if (!isNonEmptyString(pp.lien.libelle)) {
+          err(`${lctx}.libelle : obligatoire.`);
+        } else if (wordCount(pp.lien.libelle) > 6) {
+          err(`${lctx}.libelle : "${pp.lien.libelle}" dépasse 6 mots.`);
+        }
+        if (!isNonEmptyString(pp.lien.url)) {
+          err(`${lctx}.url : obligatoire.`);
+        } else if (!/^https:\/\/[^\s"']+$/.test(pp.lien.url.trim())) {
+          err(`${lctx}.url : une URL https absolue est attendue ("${pp.lien.url}").`);
+        }
+      }
+    }
+
+    if (pp.github != null) {
+      const gctx = `${ctx}, github`;
+      if (!isNonEmptyString(pp.github)) {
+        err(`${gctx} : une URL est attendue, pas ${JSON.stringify(pp.github)}.`);
+      } else if (!/^https:\/\/(www\.)?github\.com\/[^\s"']+$/.test(pp.github.trim())) {
+        err(`${gctx} : une URL https absolue sur github.com est attendue ("${pp.github}").`);
+      }
+    }
+
     if (isNonEmptyString(pp.resultat) && !/\d/.test(pp.resultat)) {
       warn(`${ctx}, resultat : ne contient ni chiffre ni date ("${pp.resultat}").`);
     }
@@ -501,7 +536,13 @@ pageProjet.forEach((pp) => {
       { h: 'Contexte', p: paragraphes(pp.contexte) },
       { h: 'Enjeu', callout: escapeHtml(pp.enjeu), perim: escapeHtml((pp.perimetre || []).join(', ')) },
       { h: 'Démarche', p: paragraphes(pp.demarche) },
-      { h: 'Résultat', result: true, p: paragraphes(pp.resultat) }
+      {
+        h: 'Résultat',
+        result: true,
+        p: paragraphes(pp.resultat),
+        ...(pp.lien ? { lien: { libelle: escapeHtml(pp.lien.libelle), url: escapeHtml(pp.lien.url.trim()) } } : {}),
+        ...(pp.github ? { github: escapeHtml(pp.github.trim()) } : {})
+      }
     ]
   };
 });
