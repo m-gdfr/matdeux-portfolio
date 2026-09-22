@@ -597,7 +597,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       }).join('');
       body = '<div class="field"><label for="f-pid">Projet</label><select id="f-pid" data-field="id"><option value="">Choisir un projet</option>' + opts + '</select>'
         + '<p class="help">Le nom, le client et la date sont repris du tableau Projets.</p></div>'
-        + field('chapo', 'Chapô', d.chapo, { help: 'Une phrase, ce que le projet a changé.' })
+        + field('chapo', 'Chapô', d.chapo, { textarea: true, full: true, help: 'Ce que le projet a changé. La page le rend d\'un seul tenant : un retour à la ligne n\'y fera pas de paragraphe.' })
         + field('contexte', 'Contexte', d.contexte, { textarea: true, full: true })
         + field('enjeu', 'Enjeu', d.enjeu, { textarea: true, full: true })
         + field('demarche', 'Démarche', d.demarche, { textarea: true, full: true })
