@@ -709,7 +709,10 @@ const SHIM_APERCU = `<style>
   /* Le fragment porte la saisie, en base64url d'un JSON UTF-8. Il reste dans
      le navigateur : aucune requête ne l'emporte. */
   function lire() {
-    var m = /[#&]d=([A-Za-z0-9\-_]+)/.exec(location.hash || '');
+    /* Le fragment d'abord. La chaîne de requête sert de rattrapage, pour le
+       cas où le lien passerait par un intermédiaire qui coupe le fragment. */
+    var m = /[#&]d=([A-Za-z0-9\-_]+)/.exec(location.hash || '')
+      || /[?&]d=([A-Za-z0-9\-_]+)/.exec(location.search || '');
     if (!m) return null;
     try {
       var b = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'));

@@ -681,6 +681,8 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       + (state.armed ? 'Confirmer la suppression' : 'Supprimer cette entrée') + '</button>'
       + (state.armed ? '<span class="card__hint">Elle disparaît pour tout le monde.</span>' : '')
       + '</div></div>';
+
+    pvSync();
   }
 
   function render() { renderList(); renderEditor(); }
@@ -693,6 +695,7 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
     if (state.armed) { state.armed = false; renderEditor(); }
     var hint = document.querySelector('.card__hint');
     if (hint) hint.textContent = 'Modifications non enregistrées';
+    pvTouche();
   }
 
   function refreshPreview() {
@@ -868,7 +871,7 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
     }
 
     var lien = e.target.closest ? e.target.closest('#apercu') : null;
-    if (lien) { pvArmer(lien, e); return; }
+    if (lien) { pvClic(lien, e); return; }
 
     if (t.id === 'save') { save(); return; }
     if (t.id === 'del') { remove(); return; }
@@ -914,17 +917,33 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
-  /* Le bouton est un lien, et son adresse s'écrit au moment du clic : window.open
-     revient vide dans l'artifact, alors qu'un lien vers une cible nommée passe.
-     Rien n'est empêché ensuite, c'est le navigateur qui ouvre l'onglet. */
-  function pvArmer(a, e) {
+  /* Le bouton est un lien, et son adresse suit la saisie frappe après frappe.
+     window.open revient vide dans l'artifact, et l'artifact ouvre lui-même les
+     liens avant que le clic ne parvienne ici : l'adresse doit donc être juste
+     avant le clic, pas au moment du clic. */
+  var pvTimer = 0;
+
+  function pvSync() {
+    var a = $('apercu');
+    if (!a) return;
+    var d = state.draft;
+    a.href = (d && filled(d.id)) ? APERCU + '#d=' + pvCode(pvDonnee()) : APERCU;
+  }
+
+  function pvTouche() {
+    if (!$('apercu')) return;
+    clearTimeout(pvTimer);
+    pvTimer = setTimeout(pvSync, 150);
+  }
+
+  function pvClic(a, e) {
     var d = state.draft;
     if (!d || !filled(d.id)) {
       e.preventDefault();
       toast('Choisis d\'abord le projet auquel cette page se rattache.');
       return;
     }
-    a.href = APERCU + '#d=' + pvCode(pvDonnee());
+    pvSync();
     toast('Aperçu dans l\'onglet voisin. Reclique pour le rafraîchir.');
   }
 
