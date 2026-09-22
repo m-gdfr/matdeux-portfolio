@@ -234,6 +234,21 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .chip input[type="text"] { flex: 1; }
 .chip__count { font-size: 13px; font-weight: var(--w-lede); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 6ch; text-align: right; }
 .chip__count.bad { color: var(--ember-ink); }
+.fig { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
+.fig__n { font-variant-numeric: tabular-nums; text-align: center; }
+.fig__n.bad { border-color: var(--ember-ink); }
+/* En colonne étroite, le compteur passe sous la ligne : le libellé a besoin
+   de la place, il est plus long que tout le reste. */
+@media (max-width: 620px) {
+  .fig {
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    grid-template-areas: "n l x" "c c c";
+  }
+  .fig__n { grid-area: n; }
+  .fig input[data-fig="l"] { grid-area: l; }
+  .fig .chip__count { grid-area: c; text-align: left; min-width: 0; }
+  .fig .icon-btn { grid-area: x; }
+}
 
 .icon-btn {
   appearance: none;
@@ -318,7 +333,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     <div id="editor"></div>
   </div>
 
-  <p class="note">Le champ <strong>media</strong> est facultatif, mais il désigne un fichier réel sous <code>src/</code> : le build vérifie son existence et ses dimensions, donc le visuel doit être déposé dans le dépôt avant que la ligne passe. Les deux <strong>liens</strong> de la page projet le sont aussi, et chacun de son côté.</p>
+  <p class="note">Le champ <strong>media</strong> est facultatif, mais il désigne un fichier réel : le visuel se dépose dans <code>src/assets/media/</code> et le chemin s'écrit relatif à <code>src/</code>, donc <code>assets/media/nom.webp</code>. Le build vérifie son existence et ses dimensions, le fichier doit donc être dans le dépôt avant que la ligne passe. Les deux <strong>liens</strong> de la page projet sont facultatifs eux aussi, et chacun de son côté, comme la rangée de <strong>chiffres clés</strong>.</p>
 </div>
 
 <script>
@@ -368,7 +383,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   function blank(col) {
     if (col === 'projets') return { id: '', nom: '', date: '', client: '', a: '#fff0c2', b: '#fa520f', c: '#171613', ordre: state.docs.projets.length };
     if (col === 'parcours') return { id: '', nom: '', dates: '', role: '', body: '', ordre: state.docs.parcours.length };
-    return { id: '', chapo: '', contexte: '', enjeu: '', demarche: '', resultat: '', perimetre: ['', ''], lien: { libelle: '', url: '' }, github: '', media: { type: 'image', src: '', w: '', h: '', alt: '', poster: '' }, ordre: state.docs['page-projet'].length };
+    return { id: '', chapo: '', contexte: '', enjeu: '', demarche: '', resultat: '', perimetre: ['', ''], chiffres: [], lien: { libelle: '', url: '' }, github: '', media: { type: 'image', src: '', w: '', h: '', alt: '', poster: '' }, ordre: state.docs['page-projet'].length };
   }
 
   /* ---------------------------------------------------------------
@@ -414,6 +429,20 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       per.forEach(function (x) {
         if (words(x) > 5) errs.push('perimetre : "' + x + '" dépasse 5 mots.');
       });
+      /* chiffres : facultatifs, mais de deux à quatre dès qu'il y en a.
+         Un seul chiffre n'est pas une rangée, cinq ne se lisent plus d'un
+         coup d'œil. Le nombre tient en huit caractères, le libellé en trois
+         mots, sinon la ligne passe et la rangée se casse. */
+      var figs = (d.chiffres || []).filter(function (f) { return filled(f && f.n) || filled(f && f.l); });
+      if (figs.length) {
+        if (figs.length < 2 || figs.length > 4) errs.push('chiffres : ' + figs.length + ' entrée(s) remplie(s), 2 à 4 attendues.');
+        figs.forEach(function (f) {
+          if (!filled(f.n)) errs.push('chiffres : "' + f.l + '" est un libellé sans son nombre.');
+          else if (f.n.trim().length > 8) errs.push('chiffres : "' + f.n + '" dépasse 8 caractères.');
+          if (!filled(f.l)) errs.push('chiffres : "' + f.n + '" est un nombre sans son libellé.');
+          else if (words(f.l) > 3) errs.push('chiffres : "' + f.l + '" dépasse 3 mots.');
+        });
+      }
       /* lien : les deux champs vont ensemble, ou aucun des deux. */
       var li = d.lien || {};
       if (filled(li.libelle) || filled(li.url)) {
@@ -530,9 +559,28 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
         + '<span class="chip__count' + (n > 5 ? ' bad' : '') + '">' + n + '/5 mot' + (n > 1 ? 's' : '') + '</span>'
         + '<button class="icon-btn" type="button" data-per-del="' + i + '" aria-label="Retirer cette entrée">×</button></div>';
     }).join('');
-    return '<div class="field field--full"><span class="lbl">Périmètre · 2 à 6 entrées, 5 mots chacune</span>'
+    return '<div class="field field--full"><span class="lbl">Périmètre · 2 à 6 entrées, 5 mots chacune, sous l\'Enjeu</span>'
       + '<div class="chips">' + rows + '</div>'
       + (per.length < 6 ? '<p><button class="btn btn--quiet" type="button" id="per-add">+ Ajouter une entrée</button></p>' : '')
+      + '</div>';
+  }
+
+  /* La rangée de chiffres clés, posée en tête du bloc Résultat, avant ses
+     paragraphes. Le nombre se lit de loin, le libellé le nomme. */
+  function chiffresRow(d) {
+    var figs = (d.chiffres && d.chiffres.length) ? d.chiffres : [];
+    var rows = figs.map(function (f, i) {
+      var n = words(f.l);
+      var long = String(f.n || '').trim().length > 8;
+      return '<div class="fig"><input class="fig__n' + (long ? ' bad' : '') + '" type="text" data-fig="n" data-fig-i="' + i + '" value="' + esc(f.n) + '" placeholder="42" aria-label="Nombre">'
+        + '<input type="text" data-fig="l" data-fig-i="' + i + '" value="' + esc(f.l) + '" placeholder="avis exploitables" aria-label="Libellé">'
+        + '<span class="chip__count' + (n > 3 ? ' bad' : '') + '">' + n + '/3 mot' + (n > 1 ? 's' : '') + '</span>'
+        + '<button class="icon-btn" type="button" data-fig-del="' + i + '" aria-label="Retirer ce chiffre">×</button></div>';
+    }).join('');
+    return '<div class="field field--full"><span class="lbl">Chiffres clés · facultatifs, 2 à 4, en tête du bloc Résultat</span>'
+      + '<div class="chips">' + rows + '</div>'
+      + (figs.length < 4 ? '<p><button class="btn btn--quiet" type="button" id="fig-add">+ Ajouter un chiffre</button></p>' : '')
+      + '<p class="help">Le nombre en huit caractères, le libellé en trois mots. Vide, la rangée ne s\'affiche pas.</p>'
       + '</div>';
   }
 
@@ -554,15 +602,15 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   function mediaRow(d) {
     var m = d.media || {};
     var isVideo = m.type === 'video';
-    return '<div class="field field--full"><span class="lbl">Media · fichier réel sous src/</span></div>'
+    return '<div class="field field--full"><span class="lbl">Media · fichier déposé dans src/assets/media/</span></div>'
       + '<div class="field"><label for="f-mtype">Type</label><select id="f-mtype" data-media="type">'
       + '<option value="image"' + (isVideo ? '' : ' selected') + '>Image</option>'
       + '<option value="video"' + (isVideo ? ' selected' : '') + '>Vidéo</option></select></div>'
-      + '<div class="field"><label for="f-msrc">Chemin</label><input type="text" id="f-msrc" data-media="src" value="' + esc(m.src) + '" placeholder="assets/projets/atlas.webp" spellcheck="false"></div>'
+      + '<div class="field"><label for="f-msrc">Chemin</label><input type="text" id="f-msrc" data-media="src" value="' + esc(m.src) + '" placeholder="assets/media/scan-avis.webp" spellcheck="false"><p class="help">Relatif à src/. Le fichier se dépose dans src/assets/media/.</p></div>'
       + '<div class="field"><label for="f-mw">Largeur en px</label><input type="text" id="f-mw" data-media="w" value="' + esc(m.w) + '" inputmode="numeric"></div>'
       + '<div class="field"><label for="f-mh">Hauteur en px</label><input type="text" id="f-mh" data-media="h" value="' + esc(m.h) + '" inputmode="numeric"></div>'
       + (isVideo
-        ? '<div class="field field--full"><label for="f-mposter">Poster</label><input type="text" id="f-mposter" data-media="poster" value="' + esc(m.poster) + '" placeholder="assets/projets/atlas-poster.webp" spellcheck="false"><p class="help">Vidéo et poster comptent ensemble, plafond 5 Mo.</p></div>'
+        ? '<div class="field field--full"><label for="f-mposter">Poster</label><input type="text" id="f-mposter" data-media="poster" value="' + esc(m.poster) + '" placeholder="assets/media/scan-avis-poster.webp" spellcheck="false"><p class="help">Vidéo et poster comptent ensemble, plafond 5 Mo.</p></div>'
         : '<div class="field field--full"><label for="f-malt">Texte alternatif</label><input type="text" id="f-malt" data-media="alt" value="' + esc(m.alt) + '"><p class="help">Ce que montre l\'image, pour qui ne la voit pas.</p></div>');
   }
 
@@ -600,9 +648,10 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
         + field('chapo', 'Chapô', d.chapo, { textarea: true, full: true, help: 'Ce que le projet a changé. La page le rend d\'un seul tenant : un retour à la ligne n\'y fera pas de paragraphe.' })
         + field('contexte', 'Contexte', d.contexte, { textarea: true, full: true })
         + field('enjeu', 'Enjeu', d.enjeu, { textarea: true, full: true })
+        + perimetreRow(d)
         + field('demarche', 'Démarche', d.demarche, { textarea: true, full: true })
         + field('resultat', 'Résultat', d.resultat, { textarea: true, full: true, help: 'Un chiffre ou une date, sinon le build avertit.' })
-        + perimetreRow(d)
+        + chiffresRow(d)
         + liensRow(d)
         + mediaRow(d);
     }
@@ -686,6 +735,23 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       var counter = t.parentNode.querySelector('.chip__count');
       counter.textContent = n + '/5 mot' + (n > 1 ? 's' : '');
       counter.className = 'chip__count' + (n > 5 ? ' bad' : '');
+      touch();
+      return;
+    }
+
+    if (t.dataset.fig) {
+      var fi = parseInt(t.dataset.figI, 10);
+      state.draft.chiffres = state.draft.chiffres || [];
+      state.draft.chiffres[fi] = state.draft.chiffres[fi] || { n: '', l: '' };
+      state.draft.chiffres[fi][t.dataset.fig] = t.value;
+      if (t.dataset.fig === 'l') {
+        var nf = words(t.value);
+        var cpt = t.parentNode.querySelector('.chip__count');
+        cpt.textContent = nf + '/3 mot' + (nf > 1 ? 's' : '');
+        cpt.className = 'chip__count' + (nf > 3 ? ' bad' : '');
+      } else {
+        t.className = 'fig__n' + (t.value.trim().length > 8 ? ' bad' : '');
+      }
       touch();
       return;
     }
@@ -779,6 +845,16 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       touch(); renderEditor(); return;
     }
 
+    if (t.id === 'fig-add') {
+      state.draft.chiffres = (state.draft.chiffres || []).concat([{ n: '', l: '' }]);
+      touch(); renderEditor(); return;
+    }
+
+    if (t.dataset && t.dataset.figDel != null) {
+      state.draft.chiffres.splice(parseInt(t.dataset.figDel, 10), 1);
+      touch(); renderEditor(); return;
+    }
+
     if (t.id === 'revert') {
       delete state.drafts[key(state.col, state.sel)];
       state.dirty = false;
@@ -829,6 +905,9 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
         delete out.lien;
       }
       if (!filled(out.github)) delete out.github;
+      var figs = (out.chiffres || []).filter(function (f) { return filled(f && f.n) && filled(f && f.l); })
+        .map(function (f) { return { n: String(f.n).trim(), l: String(f.l).trim() }; });
+      if (figs.length) out.chiffres = figs; else delete out.chiffres;
       var m = out.media || {};
       if (filled(m.src)) {
         out.media = {
