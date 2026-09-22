@@ -54,7 +54,9 @@ n'est pas une réplique : l'onglet charge `dist/apercu.html`, le fichier que le
 build écrit à côté de `dist/index.html`, même feuille de style et même fonction
 de rendu que le site. La saisie voyage dans le fragment de l'adresse, seul canal
 qui traverse l'artifact, lequel refuse les cadres et coupe le lien avec l'onglet
-qu'il ouvre ; le fragment ne part jamais vers le serveur. L'onglet porte un nom,
+qu'il ouvre ; le fragment ne part jamais vers le serveur. Le bouton est un lien,
+son adresse s'écrivant au clic, parce que `window.open` revient vide dans
+l'artifact alors qu'un lien vers une cible nommée passe. L'onglet porte un nom,
 un second aperçu y remplace donc le premier, et la carte porte une pastille
 « Aperçu de saisie ». L'aperçu lit le site déployé sur
 https://matdeux-portfolio.vercel.app : une modification du gabarit n'apparaît

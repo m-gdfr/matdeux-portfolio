@@ -286,6 +286,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
 .btn--quiet { background: transparent; border-color: transparent; color: var(--muted); }
 .btn--quiet:hover { color: var(--suie); text-decoration: underline; }
 .btn--armed { color: var(--ember-ink); border-color: var(--ember-ink); }
+a.btn { display: inline-block; text-decoration: none; line-height: normal; }
 
 .errs { margin: 0 0 24px; padding: 16px 20px; background: var(--butter); border-radius: var(--r-input); }
 .errs ul { margin: 8px 0 0; padding-left: 20px; }
@@ -674,7 +675,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       + '<div class="fields">' + body + '</div>'
       + '<div class="actions">'
       + '<button class="btn btn--primary" type="button" id="save"' + (state.writable ? '' : ' disabled') + '>Enregistrer</button>'
-      + (col === 'page-projet' ? '<button class="btn btn--ghost" type="button" id="apercu">Prévisualiser</button>' : '')
+      + (col === 'page-projet' ? '<a class="btn btn--ghost" id="apercu" href="' + esc(APERCU) + '" target="apercu-matdeux" rel="noopener">Prévisualiser</a>' : '')
       + '<button class="btn btn--ghost" type="button" id="revert">Annuler les modifications</button>'
       + '<button class="btn btn--quiet' + (state.armed ? ' btn--armed' : '') + '" type="button" id="del">'
       + (state.armed ? 'Confirmer la suppression' : 'Supprimer cette entrée') + '</button>'
@@ -866,7 +867,8 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
       return;
     }
 
-    if (t.id === 'apercu') { pvOuvrir(); return; }
+    var lien = e.target.closest ? e.target.closest('#apercu') : null;
+    if (lien) { pvArmer(lien, e); return; }
 
     if (t.id === 'save') { save(); return; }
     if (t.id === 'del') { remove(); return; }
@@ -912,13 +914,18 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
-  function pvOuvrir() {
+  /* Le bouton est un lien, et son adresse s'écrit au moment du clic : window.open
+     revient vide dans l'artifact, alors qu'un lien vers une cible nommée passe.
+     Rien n'est empêché ensuite, c'est le navigateur qui ouvre l'onglet. */
+  function pvArmer(a, e) {
     var d = state.draft;
-    if (!d) return;
-    if (!filled(d.id)) { toast('Choisis d\'abord le projet auquel cette page se rattache.'); return; }
-    var w = window.open(APERCU + '#d=' + pvCode(pvDonnee()), 'apercu-matdeux');
-    if (!w) { toast('Le navigateur a bloqué l\'onglet, autorise-le pour cette page.'); return; }
-    toast('Aperçu ouvert dans un onglet. Reclique pour le rafraîchir.');
+    if (!d || !filled(d.id)) {
+      e.preventDefault();
+      toast('Choisis d\'abord le projet auquel cette page se rattache.');
+      return;
+    }
+    a.href = APERCU + '#d=' + pvCode(pvDonnee());
+    toast('Aperçu dans l\'onglet voisin. Reclique pour le rafraîchir.');
   }
 
   /* ---------------------------------------------------------------
