@@ -50,11 +50,15 @@ s'écrit relatif à `src/`, donc `assets/media/nom.webp`.
 
 Le bouton **Prévisualiser**, dans l'onglet Page projet, ouvre la carte projet
 telle que le site la rendra, avec la saisie en cours, enregistrée ou non. Ce
-n'est pas une réplique : la page charge `dist/apercu.html`, le fichier que le
+n'est pas une réplique : l'onglet charge `dist/apercu.html`, le fichier que le
 build écrit à côté de `dist/index.html`, même feuille de style et même fonction
-de rendu que le site. La saisie lui parvient par `postMessage`. L'aperçu lit
-donc le site déployé sur https://matdeux-portfolio.vercel.app : une modification
-du gabarit n'apparaît dans l'aperçu qu'une fois déployée.
+de rendu que le site. La saisie voyage dans le fragment de l'adresse, seul canal
+qui traverse l'artifact, lequel refuse les cadres et coupe le lien avec l'onglet
+qu'il ouvre ; le fragment ne part jamais vers le serveur. L'onglet porte un nom,
+un second aperçu y remplace donc le premier, et la carte porte une pastille
+« Aperçu de saisie ». L'aperçu lit le site déployé sur
+https://matdeux-portfolio.vercel.app : une modification du gabarit n'apparaît
+dans l'aperçu qu'une fois déployée.
 
 ## Le passage
 

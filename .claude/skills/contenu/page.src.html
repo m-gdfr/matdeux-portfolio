@@ -310,15 +310,6 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   z-index: 20;
 }
 
-/* L'aperçu. Le site lui-même, chargé depuis sa vraie adresse et nourri de la
-   saisie en cours : ce qui s'affiche ici est ce que le build produira. */
-.pv { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; background: rgba(23, 22, 19, 0.58); }
-.pv[hidden] { display: none; }
-.pv__bar { display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: var(--papier); border-bottom: 1px solid var(--border); }
-.pv__t { margin: 0; font-size: 15px; font-weight: var(--w-title); }
-.pv__t span { font-weight: var(--w-body); color: var(--muted); }
-.pv__sp { flex: 1; }
-.pv__frame { flex: 1; width: 100%; border: 0; background: var(--canvas); }
 
 .note { margin-top: 28px; font-size: 15px; color: var(--muted); max-width: 62ch; }
 </style>
@@ -344,16 +335,6 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
   </div>
 
   <p class="note">Le champ <strong>media</strong> est facultatif, mais il désigne un fichier réel : le visuel se dépose dans <code>src/assets/media/</code> et le chemin s'écrit relatif à <code>src/</code>, donc <code>assets/media/nom.webp</code>. Le build vérifie son existence et ses dimensions, le fichier doit donc être dans le dépôt avant que la ligne passe. Les deux <strong>liens</strong> de la page projet sont facultatifs eux aussi, et chacun de son côté, comme la rangée de <strong>chiffres clés</strong>.</p>
-</div>
-
-<div class="pv" id="pv" hidden role="dialog" aria-modal="true" aria-label="Aperçu de la page projet">
-  <div class="pv__bar">
-    <p class="pv__t" id="pv-t">Aperçu <span>, la page telle que le build la rendra</span></p>
-    <span class="pv__sp"></span>
-    <a class="btn btn--quiet" id="pv-tab" href="#" target="_blank">Ouvrir dans un onglet</a>
-    <button class="btn btn--ghost" type="button" id="pv-close">Fermer</button>
-  </div>
-  <iframe class="pv__frame" id="pv-frame" title="Aperçu de la page projet"></iframe>
 </div>
 
 <script>
@@ -711,7 +692,6 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     if (state.armed) { state.armed = false; renderEditor(); }
     var hint = document.querySelector('.card__hint');
     if (hint) hint.textContent = 'Modifications non enregistrées';
-    pvTouche();
   }
 
   function refreshPreview() {
@@ -887,7 +867,6 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     }
 
     if (t.id === 'apercu') { pvOuvrir(); return; }
-    if (t.id === 'pv-close') { pvFermer(); return; }
 
     if (t.id === 'save') { save(); return; }
     if (t.id === 'del') { remove(); return; }
@@ -898,19 +877,22 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
      Aperçu
 
      La page projet n'est pas redessinée ici : c'est le site lui-même,
-     chargé depuis dist/apercu.html, qui reçoit la saisie en cours par
-     postMessage et la rend avec ses propres styles. Rien à
-     resynchroniser quand le site change.
+     dist/apercu.html, qui reçoit la saisie en cours et la rend avec ses
+     propres styles. Rien à resynchroniser quand le site change.
+
+     L'artifact refuse d'afficher un site dans un cadre, et l'onglet qu'il
+     ouvre ne garde aucun lien avec cette page : la saisie voyage donc dans
+     le fragment de l'adresse, qui traverse les deux obstacles et ne part
+     jamais vers le serveur. L'onglet porte un nom, si bien qu'un second
+     aperçu remplace le premier au lieu d'empiler les onglets.
      --------------------------------------------------------------- */
   var SITE = 'https://matdeux-portfolio.vercel.app';
   var APERCU = SITE + '/apercu.html';
-  var pv = { ouvert: false, cible: null, timer: 0, attente: 0 };
 
   function pvDonnee() {
     var d = state.draft || {};
     var p = state.docs.projets.filter(function (x) { return x.id === d.id; })[0] || {};
     return {
-      type: 'apercu-page-projet',
       projet: { nom: p.nom || '', date: p.date || '', client: p.client || '', a: p.a || '', b: p.b || '', c: p.c || '' },
       page: {
         chapo: d.chapo || '', contexte: d.contexte || '', enjeu: d.enjeu || '',
@@ -921,59 +903,23 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 4px; }
     };
   }
 
-  function pvEnvoyer() {
-    if (!pv.ouvert || !pv.cible) return;
-    try { pv.cible.postMessage(pvDonnee(), '*'); } catch (err) { /* fenêtre fermée */ }
-  }
-
-  /* Le trait de la barre pendant que la saisie bouge, sans rendre à chaque
-     frappe : la carte se refait en entier à chaque message. */
-  function pvTouche() {
-    if (!pv.ouvert) return;
-    clearTimeout(pv.timer);
-    pv.timer = setTimeout(pvEnvoyer, 300);
+  /* base64url d'un JSON UTF-8 : l'accent et l'apostrophe passent le fragment
+     sans y être relus de travers. */
+  function pvCode(o) {
+    var u = new TextEncoder().encode(JSON.stringify(o));
+    var bin = '';
+    for (var i = 0; i < u.length; i++) bin += String.fromCharCode(u[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
   function pvOuvrir() {
     var d = state.draft;
     if (!d) return;
     if (!filled(d.id)) { toast('Choisis d\'abord le projet auquel cette page se rattache.'); return; }
-    pv.ouvert = true;
-    pv.cible = null;
-    $('pv-t').innerHTML = 'Aperçu <span>, la page telle que le build la rendra</span>';
-    $('pv-tab').href = APERCU;
-    $('pv-frame').src = APERCU;
-    $('pv').hidden = false;
-    $('pv-close').focus();
-    /* Si le cadre ne répond pas, c'est qu'il n'a pas pu charger le site. */
-    clearTimeout(pv.attente);
-    pv.attente = setTimeout(function () {
-      if (pv.ouvert && !pv.cible) {
-        $('pv-t').innerHTML = 'L\'aperçu ne s\'affiche pas ici <span>, ouvre-le dans un onglet</span>';
-      }
-    }, 4000);
+    var w = window.open(APERCU + '#d=' + pvCode(pvDonnee()), 'apercu-matdeux');
+    if (!w) { toast('Le navigateur a bloqué l\'onglet, autorise-le pour cette page.'); return; }
+    toast('Aperçu ouvert dans un onglet. Reclique pour le rafraîchir.');
   }
-
-  function pvFermer() {
-    pv.ouvert = false;
-    pv.cible = null;
-    clearTimeout(pv.timer);
-    clearTimeout(pv.attente);
-    $('pv').hidden = true;
-    $('pv-frame').src = 'about:blank';
-  }
-
-  /* La page d'aperçu annonce qu'elle est prête, cadre ou onglet : c'est elle
-     qui devient la cible des envois. */
-  addEventListener('message', function (e) {
-    if (!e.data || e.data.type !== 'apercu-pret' || !pv.ouvert) return;
-    pv.cible = e.source;
-    pvEnvoyer();
-  });
-
-  addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && pv.ouvert) pvFermer();
-  });
 
   /* ---------------------------------------------------------------
      Base

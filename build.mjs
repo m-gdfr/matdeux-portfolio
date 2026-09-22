@@ -616,17 +616,26 @@ cpSync(join(ROOT, 'src/assets'), join(distDir, 'assets'), { recursive: true });
    du dehors au lieu de le tenir du build.
 
    La page de saisie (skill contenu) vit sur claude.ai et ne voit pas ce
-   dépôt. Elle charge donc ce fichier dans une iframe et lui envoie par
-   postMessage ce que Mathieu est en train de taper, enregistré ou non. Le
+   dépôt. Elle ouvre donc ce fichier dans un onglet, la saisie en cours
+   écrite dans le fragment de l'adresse. L'artifact refuse les cadres et
+   coupe le lien avec l'onglet qu'il ouvre : le fragment est le seul canal
+   qui traverse, et il a l'avantage de ne jamais partir vers le serveur. Le
    rendu est celui du site parce que c'est le fichier du site : même feuille
    de style, même fonction de rendu, aucune copie à resynchroniser.
 
-   Ce qui arrive par message est du texte saisi ailleurs, donc échappé ici
-   avant d'entrer dans le markup, exactement comme le build échappe le JSON.
+   Ce qui arrive par l'adresse est du texte écrit ailleurs, et n'importe qui
+   peut en forger une : tout est échappé ici avant d'entrer dans le markup,
+   comme le build échappe le JSON, les liens sont bornés à http et https, et
+   la carte porte une pastille qui dit qu'elle n'est qu'un aperçu.
    ======================================================================= */
 const SHIM_APERCU = `<style>
   /* Un aperçu ne se referme pas : il n'y a rien derrière lui. */
   html[data-apercu] #pj-close { display: none; }
+  .pj-badge {
+    position: fixed; z-index: 90; top: 14px; left: 50%; transform: translateX(-50%);
+    padding: 5px 14px; border-radius: 9999px; font-size: 13px; font-weight: 550;
+    background: #171613; color: #fffaeb; pointer-events: none;
+  }
 </style>
 <script>
 (function () {
@@ -697,15 +706,37 @@ const SHIM_APERCU = `<style>
     pj.apercu(p, c);
   }
 
-  addEventListener('message', function (e) {
-    var d = e.data;
-    if (!d || d.type !== 'apercu-page-projet') return;
-    try { rendre(d); } catch (err) { /* une saisie incomplète ne casse rien */ }
-  });
+  /* Le fragment porte la saisie, en base64url d'un JSON UTF-8. Il reste dans
+     le navigateur : aucune requête ne l'emporte. */
+  function lire() {
+    var m = /[#&]d=([A-Za-z0-9\-_]+)/.exec(location.hash || '');
+    if (!m) return null;
+    try {
+      var b = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'));
+      var u = new Uint8Array(b.length);
+      for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+      return JSON.parse(new TextDecoder().decode(u));
+    } catch (err) { return null; }
+  }
 
-  /* La page de saisie attend ce signal pour envoyer sa première donnée. */
-  var hote = window.opener || (window.parent !== window ? window.parent : null);
-  if (hote) hote.postMessage({ type: 'apercu-pret' }, '*');
+  function afficher() {
+    var m = lire();
+    if (!m) return;
+    try {
+      rendre(m);
+      if (!document.querySelector('.pj-badge')) {
+        var b = document.createElement('p');
+        b.className = 'pj-badge';
+        b.textContent = 'Aperçu de saisie';
+        document.body.appendChild(b);
+      }
+    } catch (err) { /* une saisie incomplète ne casse rien */ }
+  }
+
+  /* Rouvrir l'aperçu réutilise le même onglet : seule l'adresse change, et
+     la page doit alors se redessiner sans être rechargée. */
+  addEventListener('hashchange', afficher);
+  afficher();
 }());
 </script>
 `;
