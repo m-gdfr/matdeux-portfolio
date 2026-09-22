@@ -333,6 +333,38 @@ if (Array.isArray(pageProjet)) {
       });
     }
 
+    /* chiffres : facultatif. Une rangée de deux à quatre chiffres clés posée
+       en tête du bloc Résultat, avant ses paragraphes. Le nombre se lit de
+       loin, le libellé le nomme, donc l'un est court et l'autre tient en
+       trois mots. En dessous de deux, ce n'est pas une rangée ; au delà de
+       quatre, la rangée passe à la ligne et perd sa lecture d'un coup d'œil. */
+    if (pp.chiffres != null) {
+      const cctx = `${ctx}, chiffres`;
+      if (!Array.isArray(pp.chiffres)) {
+        err(`${cctx} : un tableau de 2 à 4 objets { n, l } est attendu.`);
+      } else {
+        if (pp.chiffres.length < 2 || pp.chiffres.length > 4) {
+          err(`${cctx} : ${pp.chiffres.length} entrée(s), 2 à 4 attendues.`);
+        }
+        pp.chiffres.forEach((f, j) => {
+          if (f == null || typeof f !== 'object' || Array.isArray(f)) {
+            err(`${cctx}[${j}] : un objet { n, l } est attendu.`);
+            return;
+          }
+          if (!isNonEmptyString(f.n)) {
+            err(`${cctx}[${j}].n : obligatoire.`);
+          } else if (f.n.trim().length > 8) {
+            err(`${cctx}[${j}].n : "${f.n}" dépasse 8 caractères.`);
+          }
+          if (!isNonEmptyString(f.l)) {
+            err(`${cctx}[${j}].l : obligatoire.`);
+          } else if (wordCount(f.l) > 3) {
+            err(`${cctx}[${j}].l : "${f.l}" dépasse 3 mots.`);
+          }
+        });
+      }
+    }
+
     if (pp.media == null) {
       warn(`${ctx} (${pp.id ?? '?'}) : aucun media, la page projet s'ouvrira sans visuel.`);
     } else {
@@ -539,6 +571,9 @@ pageProjet.forEach((pp) => {
       {
         h: 'Résultat',
         result: true,
+        ...(Array.isArray(pp.chiffres) && pp.chiffres.length > 0
+          ? { figs: pp.chiffres.map((f) => ({ n: escapeHtml(f.n.trim()), l: escapeHtml(f.l.trim()) })) }
+          : {}),
         p: paragraphes(pp.resultat),
         ...(pp.lien ? { lien: { libelle: escapeHtml(pp.lien.libelle), url: escapeHtml(pp.lien.url.trim()) } } : {}),
         ...(pp.github ? { github: escapeHtml(pp.github.trim()) } : {})
