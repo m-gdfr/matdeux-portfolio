@@ -2393,7 +2393,7 @@ const pageProjet = (() => {
   const scrim = document.getElementById('pj-scrim');
   const scroll = document.getElementById('pj-scroll');
   const btnClose = document.getElementById('pj-close');
-  if (!sheet) return { ouvrir: () => false, aDuContenu: () => false };
+  if (!sheet) return { ouvrir: () => false, aDuContenu: () => false, apercu: () => {} };
 
   /* Le contenu, indexé sur la position dans PROJETS. Les longueurs sont
      celles de la spec : chapô 36 mots, contexte 56, enjeu 58, démarche 196,
@@ -2506,8 +2506,13 @@ const pageProjet = (() => {
   }
 
   function rendre(i) {
-    const p = PROJETS[i];
-    const c = PROJETS_CONTENU[i];
+    rendreDonnee(PROJETS[i], PROJETS_CONTENU[i], pied(i));
+  }
+
+  /* Le rendu ne lit ni PROJETS ni PROJETS_CONTENU : il reçoit le projet, son
+     contenu et son pied de carte. La carte peut ainsi être rendue depuis une
+     donnée qui n'est pas dans la page, ce dont vit dist/apercu.html. */
+  function rendreDonnee(p, c, piedHtml) {
     const corps = c.blocs.filter((b) => !b.result);
     const resultat = c.blocs.find((b) => b.result);
 
@@ -2545,7 +2550,7 @@ const pageProjet = (() => {
       <div class="pj-result">${chapitre(resultat)}</div>
 
       <footer class="pj-foot">
-        ${pied(i)}
+        ${piedHtml}
         <div class="pj-contact">
           <p>Ce projet ressemble au vôtre ?</p>
           <a class="pj-btn" href="mailto:${MAIL}">Écrire à Mathieu
@@ -2606,6 +2611,24 @@ const pageProjet = (() => {
     return true;
   }
 
+  /* L'aperçu. La carte est rendue depuis une donnée qui vient du dehors, et
+     elle ne se referme pas : la page derrière n'est là que pour lui servir de
+     décor. Seul dist/apercu.html appelle ceci, la page publiée ne l'utilise
+     jamais. Le pied de carte est vide, un aperçu n'a pas de voisins. */
+  function apercu(p, c) {
+    courant = -1;
+    declencheur = null;
+    rendreDonnee(p, c, '');
+    effacerStylesGeste();
+    clearTimeout(sortie);
+    document.documentElement.setAttribute('data-apercu', '');
+    document.body.removeAttribute('data-pj-sortie');
+    document.body.setAttribute('data-projet', '');
+    sheet.removeAttribute('inert');
+    fond.forEach((n) => n.setAttribute('inert', ''));
+    document.documentElement.style.overflow = 'hidden';
+  }
+
   /* Le temps que main revienne à l'échelle 1. Volontairement un cran au-delà
      des 300ms de la feuille, pour couvrir aussi la dernière image. */
   const SORTIE_FOND_MS = 340;
@@ -2613,6 +2636,8 @@ const pageProjet = (() => {
 
   function fermer() {
     if (!document.body.hasAttribute('data-projet')) return;
+    /* L'aperçu n'a rien derrière lui qui vaille d'être montré. */
+    if (document.documentElement.hasAttribute('data-apercu')) return;
     document.body.removeAttribute('data-projet');
     document.body.setAttribute('data-pj-sortie', '');
     clearTimeout(sortie);
@@ -2861,7 +2886,7 @@ const pageProjet = (() => {
   const ancre = /^#projet-(\d+)$/.exec(location.hash);
   if (ancre) ouvrir(+ancre[1] - 1, null);
 
-  return { ouvrir, aDuContenu };
+  return { ouvrir, aDuContenu, apercu };
 })();
 </script>
 </body>

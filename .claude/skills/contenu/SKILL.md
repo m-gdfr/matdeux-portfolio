@@ -48,6 +48,14 @@ s'écrit relatif à `src/`, donc `assets/media/nom.webp`.
 
 `build.mjs` est le seul juge de la validité. La page prévient, le build trie.
 
+Le bouton **Prévisualiser**, dans l'onglet Page projet, ouvre la carte projet
+telle que le site la rendra, avec la saisie en cours, enregistrée ou non. Ce
+n'est pas une réplique : la page charge `dist/apercu.html`, le fichier que le
+build écrit à côté de `dist/index.html`, même feuille de style et même fonction
+de rendu que le site. La saisie lui parvient par `postMessage`. L'aperçu lit
+donc le site déployé sur https://matdeux-portfolio.vercel.app : une modification
+du gabarit n'apparaît dans l'aperçu qu'une fois déployée.
+
 ## Le passage
 
 1. **Accorder le dépôt et la page.** Lire les trois `content/*.json`, lire les

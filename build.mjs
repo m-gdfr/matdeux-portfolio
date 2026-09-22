@@ -611,6 +611,107 @@ mkdirSync(distDir, { recursive: true });
 writeFileSync(join(distDir, 'index.html'), out, 'utf8');
 cpSync(join(ROOT, 'src/assets'), join(distDir, 'assets'), { recursive: true });
 
+/* ==========================================================================
+   dist/apercu.html : la même page, dont la carte projet attend son contenu
+   du dehors au lieu de le tenir du build.
+
+   La page de saisie (skill contenu) vit sur claude.ai et ne voit pas ce
+   dépôt. Elle charge donc ce fichier dans une iframe et lui envoie par
+   postMessage ce que Mathieu est en train de taper, enregistré ou non. Le
+   rendu est celui du site parce que c'est le fichier du site : même feuille
+   de style, même fonction de rendu, aucune copie à resynchroniser.
+
+   Ce qui arrive par message est du texte saisi ailleurs, donc échappé ici
+   avant d'entrer dans le markup, exactement comme le build échappe le JSON.
+   ======================================================================= */
+const SHIM_APERCU = `<style>
+  /* Un aperçu ne se referme pas : il n'y a rien derrière lui. */
+  html[data-apercu] #pj-close { display: none; }
+</style>
+<script>
+(function () {
+  /* pageProjet est un const de premier niveau : il vit dans la portee lexicale
+     globale, pas sur window, et se lit donc par son nom. */
+  var pj = typeof pageProjet !== 'undefined' ? pageProjet : null;
+  if (!pj || typeof pj.apercu !== 'function') return;
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function couleur(v, defaut) {
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(v || '').trim())
+      ? String(v).trim() : defaut;
+  }
+  function adresse(u) {
+    u = String(u == null ? '' : u).trim();
+    return /^https?:\\/\\//i.test(u) ? esc(u) : '';
+  }
+  function paragraphes(t) {
+    return String(t == null ? '' : t).split(/\\n+/)
+      .map(function (x) { return x.trim(); })
+      .filter(Boolean).map(esc);
+  }
+  function texte(v) { return esc(String(v == null ? '' : v).trim()); }
+
+  function rendre(m) {
+    var pr = m.projet || {};
+    var pp = m.page || {};
+    var p = {
+      nom: texte(pr.nom) || 'Sans titre',
+      date: texte(pr.date),
+      a: couleur(pr.a, '#6b6257'),
+      b: couleur(pr.b, '#8d8377'),
+      c: couleur(pr.c, '#b3a898')
+    };
+    var per = (pp.perimetre || []).map(function (x) { return String(x || '').trim(); })
+      .filter(Boolean).join(', ');
+    var figs = (pp.chiffres || []).filter(function (f) {
+      return f && String(f.n || '').trim() && String(f.l || '').trim();
+    }).map(function (f) { return { n: texte(f.n), l: texte(f.l) }; });
+    var resultat = {
+      h: 'Résultat', result: true,
+      p: paragraphes(pp.resultat)
+    };
+    if (figs.length) resultat.figs = figs;
+    var lienUrl = adresse(pp.lien && pp.lien.url);
+    if (lienUrl && String((pp.lien || {}).libelle || '').trim()) {
+      resultat.lien = { libelle: texte(pp.lien.libelle), url: lienUrl };
+    }
+    var git = adresse(pp.github);
+    if (git) resultat.github = git;
+
+    var alt = String((pp.media || {}).alt || '').trim();
+    var c = {
+      chapo: texte(pp.chapo),
+      client: texte(pr.client),
+      media: { cap: alt ? esc(alt) : 'Visuel du projet ' + p.nom },
+      blocs: [
+        { h: 'Contexte', p: paragraphes(pp.contexte) },
+        { h: 'Enjeu', callout: texte(pp.enjeu), perim: esc(per) },
+        { h: 'Démarche', p: paragraphes(pp.demarche) },
+        resultat
+      ]
+    };
+    pj.apercu(p, c);
+  }
+
+  addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || d.type !== 'apercu-page-projet') return;
+    try { rendre(d); } catch (err) { /* une saisie incomplète ne casse rien */ }
+  });
+
+  /* La page de saisie attend ce signal pour envoyer sa première donnée. */
+  var hote = window.opener || (window.parent !== window ? window.parent : null);
+  if (hote) hote.postMessage({ type: 'apercu-pret' }, '*');
+}());
+</script>
+`;
+
+writeFileSync(join(distDir, 'apercu.html'), out.replace('</body>', SHIM_APERCU + '</body>'), 'utf8');
+
 console.log(`Build terminé : ${projets.length} projet(s), ${parcours.length} expérience(s), ${pageProjet.length} page(s) projet.`);
 if (warnings.length > 0) {
   console.error(`${warnings.length} avertissement(s) :`);
