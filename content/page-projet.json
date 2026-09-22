@@ -1,11 +1,16 @@
 [
   {
     "id": "scan-avis",
-    "chapo": "Les avis négatifs sont la matière produit la moins exploitée du web. Scan-avis les convertit en irritants hiérarchisés, et les haters en contributeurs. Premier scan publié : Qonto, 42 avis, 3 irritants priorisés.",
-    "contexte": "Quelqu'un écrit un avis à deux heures du matin, après une mauvaise expérience. Il décrit précisément ce qui l'a bloqué. Personne ne lira ce message comme une information.\n\nDe l'autre côté, la marque lit ses avis comme une note à défendre. Elle répond, modère, fait remonter la moyenne. Le contenu part à la corbeille avec l'émotion qui l'accompagne. Des milliers de descriptions de problèmes réels dorment ainsi en ligne, à la vue de tous.",
+    "chapo": "Les avis, souvent négatifs, sont la matière produit la moins exploitée du web. Scan-avis les convertit en irritants hiérarchisés, et les haters deviennent des contributeurs.",
+    "contexte": "Lorsqu'un utilisateur écrit un avis à deux heures du matin, après une mauvaise expérience. Il décrit précisément ce qui l'a bloqué.\n\nMais la marque ne lit pas ce message comme une information.\n\nElle lit ses avis comme une note à défendre. Elle répond, modère, fait remonter la moyenne. C'est comme ça que des milliers de descriptions de problèmes réels ne sont pas traités.",
     "enjeu": "Prouver qu'un avis négatif contient une information produit exploitable, et fixer le protocole qui l'extrait.",
-    "demarche": "J'ai construit un skill Claude Code qui exécute le scan d'un bout à l'autre, sans pause de validation.\n\nLe premier arbitrage porte sur la gravité. Une plainte ne se priorise pas au volume : dix remarques esthétiques ne valent pas une résiliation. J'ai posé une échelle en quatre niveaux, du cosmétique au churn explicite, lue dans les verbatims eux-mêmes. Le score croise cette gravité avec la fréquence. Il classe les irritants entre eux, au sein d'un même scan, jamais d'un scan à l'autre.\n\nLe second arbitrage porte sur le vocabulaire. « Le filtre ne marche pas » est un irritant. « Il faudrait un filtre par date » est un besoin. Les deux vivent dans des sections séparées, parce qu'ils n'appellent pas la même décision.\n\nLe reste de la méthode sert la fiabilité. Trois niveaux de confirmation, des règles de recoupement empruntées au journalisme, des règles d'arrêt qui bornent la collecte, et aucun irritant retenu sans verbatim sourcé. Le skill produit deux livrables : un Markdown pour la reprise par un autre agent, une page HTML autonome pour la lecture humaine.",
-    "resultat": "Le skill est publié, documenté et téléchargeable depuis septembre 2026.\n\nPremier scan mené sur Qonto le 16 septembre 2026. 42 avis exploitables, retenus sur cinq sources (Trustpilot, Reddit, App Store, Google Play, un forum métier) et sur les douze derniers mois. En sortie : 3 irritants priorisés, 3 besoins exprimés, 3 points forts à préserver. Le gel de compte en vérification KYC est le seul irritant noté au niveau le plus grave, celui du churn explicite.\n\nDe quoi ouvrir un atelier de priorisation sans avoir mené un seul entretien.",
+    "demarche": "J'ai construit un skill Claude Code qui exécute le scan de bout en bout. De la récupération des avis à la hiérarchisation des irritants. \n\nLe premier arbitrage porte sur la gravité. Une plainte ne se priorise pas au volume : dix remarques esthétiques ne valent pas une résiliation. J'ai posé une échelle en quatre niveaux, du problème mineur au churn explicite, lue dans les verbatims eux-mêmes. Cette échelle est croisée à la fréquence de l'avis pour constituer un score. Ce score classe les irritants entre eux, au sein d'un même scan.\n\nLe second arbitrage porte sur le vocabulaire. « Le filtre ne marche pas » est un irritant. « Il faudrait un filtre par date » est un besoin. Les deux vivent dans des sections séparées, parce qu'ils n'appellent pas la même décision.\n\nLe reste de la méthode sert la fiabilité. Trois niveaux de confirmation, des règles de recoupement empruntées au journalisme, des règles d'arrêt qui bornent la collecte, et aucun irritant retenu sans verbatim sourcé.\n\nLe skill produit deux livrables : un Markdown pour la reprise par un autre agent, une page HTML autonome pour la lecture humaine.",
+    "resultat": "Le skill est publié, documenté et téléchargeable sur GitHub.\n\nPremier scan mené sur Qonto le 16 septembre 2026. 42 avis exploitables, retenus sur cinq sources (Trustpilot, Reddit, App Store, Google Play, un forum métier) et sur les douze derniers mois.\n\nEn sortie : 3 irritants priorisés, 3 besoins exprimés, 3 points forts à préserver.",
+    "perimetre": [
+      "Cadrage méthodologique",
+      "Priorisation par scoring",
+      "Développement du skill"
+    ],
     "chiffres": [
       {
         "n": "42",
@@ -20,15 +25,10 @@
         "l": "irritants priorisés"
       }
     ],
-    "perimetre": [
-      "Cadrage méthodologique",
-      "Grille de scoring",
-      "Développement du skill",
-      "Rédaction des livrables"
-    ],
     "lien": {
       "libelle": "Voir le scan Qonto",
       "url": "https://scan-avis-demo.vercel.app/"
-    }
+    },
+    "github": "https://github.com/m-gdfr/skill-scan-avis.git"
   }
 ]
