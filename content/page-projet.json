@@ -30,5 +30,87 @@
       "url": "https://scan-avis-demo.vercel.app/"
     },
     "github": "https://github.com/m-gdfr/skill-scan-avis.git"
+  },
+  {
+    "id": "le-booster",
+    "chapo": "En 2025, seuls 30 % des titres du Top 100 Deezer sont portés par des femmes. Pour faire face à ce problème j'ai imaginé Le Booster. Une initiative où la communauté vote directement dans l’app pour donner de la visibilité aux talents féminins.",
+    "contexte": "Les chiffres de Deezer posent le problème. En 2025, seuls 30 des 100 titres les plus écoutés sur la plateforme sont portés par des femmes.\n\nMa réflexion produit part d'un constat. La meilleure recommandation ne vient jamais d'un algorithme. Elle vient d'un ami qui te dit « écoute ça, tu vas adorer ».\n\nLe Booster intègre ce constat dans l'app : les auditeurs votent pour des titres d'artistes féminines, et les plus boostés montent en une.",
+    "enjeu": "Transformer un déséquilibre de parité en fonctionnalité qui engage réellement la communauté.",
+    "demarche": "Tout part d'une question : comment faire monter la part des artistes féminines dans les écoutes totales de Deezer ? C'est la north star du Booster, et chaque choix de la feature la sert.\n\nPrenons une auditrice. Elle écoute un titre qui la touche, d'une artiste qu'elle trouve trop peu entendue. Elle appuie sur « Booster ». Star du Top 100 ou inconnue à quelques centaines d'écoutes, peu importe. Le déséquilibre touche tout le classement, alors toutes les artistes féminines peuvent être boostées.\n\nElle peut recommencer autant qu'elle veut, mais pas plus de trois fois pour la même artiste. Pour un quatrième boost, elle doit en choisir une autre. Ce plafond change tout. Aucune fanbase ne peut porter seule une artiste en tête, et chaque auditeur finit par défendre plusieurs artistes. Le soutien se répartit, et le nombre d'artistes exposées grandit.\n\nChaque semaine, les titres les plus boostés forment un Top 50 affiché en une de l'app. Un titre qui y entre gagne de l'exposition, donc des écoutes. Puis le compteur repart à zéro. Les titres tournent, et la communauté revient la semaine suivante pour pousser ses nouvelles découvertes.\n\nPour savoir si ça marche, je suis deux signaux à côté de la north star. Le nombre d'artistes différentes boostées chaque semaine dit si le soutien se répartit vraiment. La part d'auditeurs qui boostent deux semaines de suite dit si le geste devient une habitude.",
+    "resultat": "Aujourd'hui, les artistes féminines représentent 26 % du temps d'écoute sur Deezer (septembre 2025). C'est le point de départ de la north star.\n\nMon objectif : 28 % en douze mois, par paliers d'un point par semestre.\n\nDeux points, c'est une ambition mesurée, et c'est voulu. Le Booster agit par une seule surface, la une de l'app. Il ne réécrit pas l'algorithme, il corrige une partie de ses effets. Viser plus, ce serait promettre un résultat que la feature ne peut pas porter seule.\n\nLe premier palier, 27 % à six mois, sert de point de décision. Les deux signaux disent alors où agir. Si la part stagne alors que les boosts restent nombreux, le Top 50 expose sans convertir en écoutes : c'est lui qu'il faut revoir. Si les boosts eux-mêmes retombent, c'est l'engagement qui manque.",
+    "perimetre": [
+      "Cadrage produit",
+      "Règles d'éligibilité",
+      "Mécanique de vote",
+      "Définition des métriques"
+    ],
+    "chiffres": [
+      {
+        "n": "30 %",
+        "l": "titres, Top 100"
+      },
+      {
+        "n": "2025",
+        "l": "données Deezer"
+      }
+    ]
+  },
+  {
+    "id": "extension-tgi",
+    "chapo": "En agence média, chaque étude d'audience part d'un export Kantar TGI, et chaque export demandait une heure de nettoyage à la main. J'ai conçu une extension Google Sheets qui fait ce travail. Un clic, et le tableau brut devient un tableau prêt à analyser.",
+    "contexte": "Une étude d'audience commence toujours de la même façon. On sort les données de Kantar TGI, et on obtient un tableau brut : des lignes et des colonnes en trop, une mise en forme inutilisable, des indicateurs qui ne servent pas l'analyse. Il faut plus d'une heure pour le rendre lisible. Et un projet peut compter jusqu'à dix exports.\n\nPersonne ne remettait ce temps en question. Il faisait partie du métier, comme une étape obligée avant le vrai travail. Mais une heure passée à nettoyer, c'est une heure qui ne va pas à l'analyse.\n\nL'extension retire cette étape : elle nettoie l'export en un clic, directement dans Google Sheets.",
+    "enjeu": "Faire passer l'équipe de l'export à l'analyse sans étape manuelle.",
+    "demarche": "Tout part d'une question : combien de temps faut-il entre la sortie d'un export et le début de l'analyse ? C'est ce délai que l'extension doit réduire, et chaque choix de l'outil le sert.\n\nPrenons une planneuse de l'équipe. Elle lance une étude, sort son premier export TGI et l'ouvre dans Google Sheets. Avant, elle passait l'heure suivante à supprimer, réaligner, trier. Maintenant, elle ouvre le menu de l'extension et clique.\n\nL'extension supprime d'abord les lignes et les colonnes qui n'apportent rien. Elle remet ensuite le tableau en forme, pour que chaque colonne se lise d'un coup d'œil. Enfin, elle ne garde que les indicateurs utiles à l'analyse. Chaque étape reprend un geste que l'équipe faisait déjà à la main, dans le même ordre. Le résultat ressemble donc à ce qu'elle aurait produit elle-même.\n\nLe cœur du dispositif, c'est ce clic unique. L'outil vit là où l'équipe travaille déjà, dans Google Sheets, sans nouvel outil à apprendre ni fichier à déplacer. Il empêche les variations d'un nettoyage à l'autre : deux planneurs obtiennent le même tableau à partir du même export. Et il rend le nettoyage assez rapide pour qu'on ne le repousse plus.\n\nSur un projet, la planneuse répète le geste à chaque nouvel export, jusqu'à dix fois. Le gain s'additionne à chaque clic.\n\nPour construire l'outil, j'ai d'abord observé le nettoyage manuel et je l'ai décrit étape par étape. Cette spécification m'a servi à générer le script Apps Script avec une IA générative. J'ai testé le résultat sur de vrais exports avant de le déployer à l'équipe.",
+    "resultat": "L'extension est déployée en janvier 2025 et utilisée par mon équipe sur ses études d'audience.\n\nLe nettoyage d'un export passe d'une heure à un clic. Sur un projet à dix exports, c'est jusqu'à dix heures rendues à l'analyse.",
+    "perimetre": [
+      "Cadrage du besoin",
+      "Spécification fonctionnelle",
+      "Développement Apps Script",
+      "Tests et déploiement"
+    ],
+    "chiffres": [
+      {
+        "n": "1 h",
+        "l": "gagnée par export"
+      },
+      {
+        "n": "10",
+        "l": "exports par projet"
+      }
+    ]
+  },
+  {
+    "id": "leboncoin",
+    "chapo": "Sur leboncoin, 65 % des vendeurs qui vendent leur premier objet en moins de deux jours republient une annonce dans les six mois. Quand la vente dépasse un mois, ils ne sont plus que 47 %. J'ai repensé l'annonce et le profil pour raccourcir ce délai : l'annonce dit l'essentiel en un coup d'œil, le profil donne à l'acheteur une raison de faire confiance.",
+    "contexte": "Les données de leboncoin posent le problème. Un vendeur qui vend vite revient : 65 % republient dans les six mois, contre 47 % pour ceux qui ont attendu plus de trente jours. Ils publient aussi trois fois plus d'annonces au total. Aujourd'hui, une annonce met en médiane 11 jours à trouver preneur.\n\nJ'ai interrogé 16 personnes, vendeurs et acheteurs, sur les objets du quotidien : maison, famille, électronique, loisirs. Le blocage est chez l'acheteur. Il ne lit pas les annonces longues. Il juge d'abord sur les photos. Et il achète à un inconnu. « Tu sais jamais vraiment à qui tu as affaire », résume Mahamado.\n\nL'idée : aider l'acheteur à décider plus vite, en rendant l'annonce lisible et le vendeur rassurant.",
+    "enjeu": "Réduire le temps de vente pour transformer un vendeur occasionnel en vendeur qui revient.",
+    "demarche": "Tout part d'une question : pourquoi un acheteur hésite-t-il devant une annonce qui lui plaît ? La north star du projet est le délai médian de vente. Côté avis, elle se joue à un moment précis : quand l'acheteur ouvre le profil du vendeur et décide de le contacter, ou pas.\n\nAujourd'hui, ce profil ne l'aide pas. Il y trouve des notes pleines et des commentaires vides, parfois écrits par la plateforme elle-même : « Avis automatique : transaction réalisée avec succès ! ». Cinq étoiles sans un mot ne disent pas ce qui s'est bien passé. Le doute reste. Une partie des acheteurs ne tranche qu'en main propre, pour vérifier l'objet de ses yeux.\n\nLa cause est dans la conception de l'avis. Il a été pensé comme une mesure de satisfaction, remplie après l'échange. Celui qui l'écrit n'a plus rien à y gagner : la vente est faite, il ne prend pas le temps. Celui qui le lit, lui, est le prochain acheteur. Il cherche autre chose : savoir si le vendeur est une personne de confiance. J'ai donc repensé l'avis comme une fiche de renseignement, écrite pour celui qui la lira.\n\nTout commence par le remplissage. Sans avis rempli, rien d'autre n'existe. À l'ouverture de l'app, une carte affiche la photo du vendeur et une question : « Comment s'est passé votre échange avec Victor ? ». L'acheteur voit une personne, plus une transaction. Sous le bouton, une promesse : « en moins de 30 sec ». Le visage et la rapidité lèvent les deux freins au remplissage.\n\nLe formulaire remplace l'écriture par des choix. Une note. Ce qui n'a pas fonctionné : peu réactif, retard, prix négocié, échange tendu. La conformité du produit : conforme, léger défaut, non conforme. Et une recommandation, oui ou non. Chaque clic répond à une question que se pose le prochain acheteur. Le commentaire vient ensuite. Il reste facultatif, et l'IA peut le rédiger à partir des réponses. Le texte redevient possible sans redevenir un effort.\n\nLa question de conformité est le cœur de la feature. Sur une annonce, l'état de l'objet n'est que la parole du vendeur. Avec l'avis, c'est un acheteur précédent qui le confirme. La réponse remonte sur le profil sous forme de pastille « Produit conforme », lisible d'un coup d'œil. L'acheteur suivant n'a plus à tout vérifier lui-même pour se décider.\n\nChaque avis publié enrichit le profil. Le vendeur reçoit enfin un avis qui dit quelque chose, et le prochain acheteur a de quoi décider sans attendre. Une vente qui se conclut plus vite, c'est un vendeur qui revient déposer, et un nouvel avis à écrire.\n\nPour savoir si ça marche, je suis deux signaux à côté de la north star. La part d'avis où la conformité est renseignée dit si le formulaire lève vraiment le frein du remplissage. Le taux de contact après consultation d'un profil vendeur dit si l'avis aide réellement à décider.",
+    "resultat": "Aujourd'hui, une annonce leboncoin met en médiane 11 jours à se vendre, d'après les données transmises par leboncoin en septembre 2026. C'est le point de départ de la north star.\n\nMon objectif : 9 jours. Chaque feature part d'abord en A/B test sur une partie des vendeurs, puis se généralise. [À valider : échéance à 12 mois, premier palier à 10 jours à 6 mois.]\n\nDeux jours, c'est une ambition mesurée. Les écarts observés dans la data, 4,5 jours pour l'état, 3,1 jours pour une description de plus de 20 mots, sont des corrélations. Ils ne s'additionnent pas, et ils dépendent de vendeurs qui remplissent réellement les champs. Viser plus, ce serait promettre ce que l'annonce seule ne peut pas tenir.\n\nLe premier palier sert de point de décision. Les deux signaux disent alors où agir. Si les champs sont remplis mais que le délai ne bouge pas, l'annonce informe sans convaincre : c'est la confiance, donc le profil et les avis, qu'il faut revoir. Si les champs restent vides, c'est le dépôt qu'il faut simplifier.",
+    "perimetre": [
+      "User research",
+      "Analyse de la data",
+      "Définition de la north star",
+      "Priorisation des problèmes",
+      "Conception de l'annonce",
+      "Conception du profil"
+    ],
+    "chiffres": [
+      {
+        "n": "65 %",
+        "l": "re-dépôt, vente rapide"
+      },
+      {
+        "n": "11 j",
+        "l": "délai médian actuel"
+      },
+      {
+        "n": "-4,5 j",
+        "l": "état renseigné"
+      },
+      {
+        "n": "16",
+        "l": "personnes interrogées"
+      }
+    ]
   }
 ]

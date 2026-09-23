@@ -1,9 +1,36 @@
 [
   {
     "id": "scan-avis",
-    "date": "Sept. 2026",
+    "date": "sept. 2026",
     "nom": "Scan-avis",
     "client": "Skill Claude",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#171613"
+  },
+  {
+    "id": "le-booster",
+    "date": "sept. 2025",
+    "nom": "Le Booster",
+    "client": "Deezer",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#171613"
+  },
+  {
+    "id": "extension-tgi",
+    "date": "jan. 2025",
+    "nom": "Extension TGI",
+    "client": "Australie.GAD",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#171613"
+  },
+  {
+    "id": "leboncoin",
+    "date": "sept. 2026",
+    "nom": "Le bon avis",
+    "client": "Leboncoin",
     "a": "#fff0c2",
     "b": "#fa520f",
     "c": "#171613"
