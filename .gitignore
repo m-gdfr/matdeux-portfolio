@@ -4,3 +4,4 @@ dist/
 .env*
 prototypes/
 specs/
+node_modules/
