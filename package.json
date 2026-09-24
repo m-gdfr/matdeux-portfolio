@@ -1,3 +1,10 @@
 {
-  "type": "module"
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
 }
