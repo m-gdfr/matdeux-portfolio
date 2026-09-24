@@ -29,10 +29,9 @@ ils sont absents ou vides, jamais écrits sous forme de coquille. `lien` porte
 son libellé parce qu'il nomme une chose différente à chaque projet ; `github`
 est une simple URL, le gabarit pose son libellé.
 
-`chiffres` est la rangée de chiffres clés posée en tête du bloc Résultat : de
-deux à quatre objets `{ n, l }`, le nombre en huit caractères, le libellé en
-trois mots. Elle se lit d'un coup d'œil ou elle ne sert à rien, d'où les
-bornes. Le matériau se prend dans le Résultat lui-même, les mesures qu'il
+`chiffres` est la rangée de chiffres clés posée en tête du bloc Résultat : des
+objets `{ n, l }` en nombre libre, le nombre en huit caractères, le libellé en
+trois mots. Le matériau se prend dans le Résultat lui-même, les mesures qu'il
 énonce déjà, jamais un chiffre inventé pour remplir la rangée.
 
 ```json

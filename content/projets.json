@@ -6,7 +6,14 @@
     "client": "Skill Claude",
     "a": "#fff0c2",
     "b": "#fa520f",
-    "c": "#171613"
+    "c": "#171613",
+    "media": {
+      "type": "image",
+      "src": "assets/media/Scan-avis.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo Scan avis"
+    }
   },
   {
     "id": "le-booster",
@@ -15,7 +22,14 @@
     "client": "Deezer",
     "a": "#fff0c2",
     "b": "#fa520f",
-    "c": "#171613"
+    "c": "#171613",
+    "media": {
+      "type": "image",
+      "src": "assets/media/Le Booster.jpg",
+      "w": 864,
+      "h": 1080,
+      "alt": "Logo Le Booster"
+    }
   },
   {
     "id": "extension-tgi",
@@ -24,7 +38,14 @@
     "client": "Australie.GAD",
     "a": "#fff0c2",
     "b": "#fa520f",
-    "c": "#171613"
+    "c": "#171613",
+    "media": {
+      "type": "image",
+      "src": "assets/media/Extension-tgi.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo Extension TGI"
+    }
   },
   {
     "id": "leboncoin",

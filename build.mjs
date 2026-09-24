@@ -333,19 +333,15 @@ if (Array.isArray(pageProjet)) {
       });
     }
 
-    /* chiffres : facultatif. Une rangée de deux à quatre chiffres clés posée
-       en tête du bloc Résultat, avant ses paragraphes. Le nombre se lit de
-       loin, le libellé le nomme, donc l'un est court et l'autre tient en
-       trois mots. En dessous de deux, ce n'est pas une rangée ; au delà de
-       quatre, la rangée passe à la ligne et perd sa lecture d'un coup d'œil. */
+    /* chiffres : facultatif. Une rangée de chiffres clés posée en tête du
+       bloc Résultat, avant ses paragraphes, sans nombre imposé. Le nombre se
+       lit de loin, le libellé le nomme, donc l'un est court et l'autre tient
+       en trois mots. */
     if (pp.chiffres != null) {
       const cctx = `${ctx}, chiffres`;
       if (!Array.isArray(pp.chiffres)) {
-        err(`${cctx} : un tableau de 2 à 4 objets { n, l } est attendu.`);
+        err(`${cctx} : un tableau d'objets { n, l } est attendu.`);
       } else {
-        if (pp.chiffres.length < 2 || pp.chiffres.length > 4) {
-          err(`${cctx} : ${pp.chiffres.length} entrée(s), 2 à 4 attendues.`);
-        }
         pp.chiffres.forEach((f, j) => {
           if (f == null || typeof f !== 'object' || Array.isArray(f)) {
             err(`${cctx}[${j}] : un objet { n, l } est attendu.`);
@@ -433,10 +429,20 @@ if (errors.length > 0) {
    Markup des projets. ligne() et visual() sont déplacées telles quelles
    depuis le script de la page (git show HEAD:index.html, lignes 1471 à
    1505), seule modification : p.theme devient p.client, et les valeurs
-   insérées passent par escapeHtml. Le dégradé reste le seul contenu du
-   visuel, aucune balise img n'est générée.
+   insérées passent par escapeHtml. Un projet qui a son image la pose à la
+   place du dégradé, recadrée comme lui ; sans image, le dégradé reste.
    ======================================================================= */
 function visual(p, i) {
+  if (p.media) {
+    /* loading="lazy" : la liste décide elle-même quand une image part, en
+       la passant en eager à l'approche du centre. */
+    return `
+      <div class="visual" data-loading>
+        <img class="visual__img visual__file" src="${cheminMedia(p.media.src)}"
+             width="${p.media.w}" height="${p.media.h}" alt="${escapeHtml(p.media.alt)}"
+             loading="lazy" decoding="async">
+      </div>`;
+  }
   return `
       <div class="visual" data-loading>
         <svg class="visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
@@ -552,6 +558,26 @@ const donneeProjets = projets.map((p) => ({
   c: p.c
 }));
 
+/* Le fichier du média, tel que le gabarit le lit. Le chemin est relatif à
+   src/, et dist/ reprend src/assets/ à l'identique : il sert donc tel quel
+   depuis dist/index.html, chaque segment encodé pour qu'un nom de fichier
+   avec une espace reste une adresse. Sans média, rien : le gabarit garde
+   son visuel de substitution. */
+function cheminMedia(src) {
+  return escapeHtml(src.split('/').map(encodeURIComponent).join('/'));
+}
+
+function fichierMedia(m) {
+  if (!m) return {};
+  return {
+    type: m.type,
+    src: cheminMedia(m.src),
+    w: m.w,
+    h: m.h,
+    ...(m.type === 'video' ? { poster: cheminMedia(m.poster) } : {})
+  };
+}
+
 const donneePageProjet = {};
 pageProjet.forEach((pp) => {
   const i = projets.findIndex((p) => p.id === pp.id);
@@ -563,7 +589,7 @@ pageProjet.forEach((pp) => {
   donneePageProjet[i] = {
     chapo: escapeHtml(pp.chapo),
     client: escapeHtml(p.client),
-    media: { cap },
+    media: { cap, ...fichierMedia(pp.media) },
     blocs: [
       { h: 'Contexte', p: paragraphes(pp.contexte) },
       { h: 'Enjeu', callout: escapeHtml(pp.enjeu), perim: escapeHtml((pp.perimetre || []).join(', ')) },
@@ -657,6 +683,13 @@ const SHIM_APERCU = `<style>
     u = String(u == null ? '' : u).trim();
     return /^https?:\\/\\//i.test(u) ? esc(u) : '';
   }
+  /* Un média de l'aperçu est un fichier du site, rien d'autre : chemin
+     relatif sous assets/, sans remontée ni protocole. */
+  function chemin(s) {
+    s = String(s == null ? '' : s).trim().replace(/^\\/+/, '');
+    if (!/^assets\\/[^:?#]+$/.test(s) || /(^|\\/)\\.\\.(\\/|$)/.test(s)) return '';
+    return esc(s.split('/').map(encodeURIComponent).join('/'));
+  }
   function paragraphes(t) {
     return String(t == null ? '' : t).split(/\\n+/)
       .map(function (x) { return x.trim(); })
@@ -692,10 +725,19 @@ const SHIM_APERCU = `<style>
     if (git) resultat.github = git;
 
     var alt = String((pp.media || {}).alt || '').trim();
+    var media = { cap: alt ? esc(alt) : 'Visuel du projet ' + p.nom };
+    var mm = pp.media || {};
+    var msrc = chemin(mm.src);
+    var mw = parseInt(mm.w, 10), mh = parseInt(mm.h, 10);
+    if (msrc && mw > 0 && mh > 0) {
+      media.type = mm.type === 'video' ? 'video' : 'image';
+      media.src = msrc; media.w = mw; media.h = mh;
+      if (media.type === 'video') media.poster = chemin(mm.poster);
+    }
     var c = {
       chapo: texte(pp.chapo),
       client: texte(pr.client),
-      media: { cap: alt ? esc(alt) : 'Visuel du projet ' + p.nom },
+      media: media,
       blocs: [
         { h: 'Contexte', p: paragraphes(pp.contexte) },
         { h: 'Enjeu', callout: texte(pp.enjeu), perim: esc(per) },

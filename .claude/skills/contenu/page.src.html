@@ -383,7 +383,7 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
   function filled(v) { return typeof v === 'string' && v.trim().length > 0; }
 
   function blank(col) {
-    if (col === 'projets') return { id: '', nom: '', date: '', client: '', a: '#fff0c2', b: '#fa520f', c: '#171613', ordre: state.docs.projets.length };
+    if (col === 'projets') return { id: '', nom: '', date: '', client: '', a: '#fff0c2', b: '#fa520f', c: '#171613', media: { type: 'image', src: '', w: '', h: '', alt: '' }, ordre: state.docs.projets.length };
     if (col === 'parcours') return { id: '', nom: '', dates: '', role: '', body: '', ordre: state.docs.parcours.length };
     return { id: '', chapo: '', contexte: '', enjeu: '', demarche: '', resultat: '', perimetre: ['', ''], chiffres: [], lien: { libelle: '', url: '' }, github: '', media: { type: 'image', src: '', w: '', h: '', alt: '', poster: '' }, ordre: state.docs['page-projet'].length };
   }
@@ -411,6 +411,7 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
         if (!filled(d[f])) errs.push(f + ' : obligatoire.');
         else if (!HEX_RE.test(d[f])) errs.push(f + ' : "' + d[f] + '" n\'est pas une couleur hexadécimale valide.');
       });
+      errs = errs.concat(mediaErrs(d.media, false));
     }
 
     if (col === 'parcours') {
@@ -431,13 +432,11 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       per.forEach(function (x) {
         if (words(x) > 5) errs.push('perimetre : "' + x + '" dépasse 5 mots.');
       });
-      /* chiffres : facultatifs, mais de deux à quatre dès qu'il y en a.
-         Un seul chiffre n'est pas une rangée, cinq ne se lisent plus d'un
-         coup d'œil. Le nombre tient en huit caractères, le libellé en trois
-         mots, sinon la ligne passe et la rangée se casse. */
+      /* chiffres : facultatifs, sans nombre imposé. Le nombre tient en huit
+         caractères, le libellé en trois mots, sinon la ligne passe et la
+         rangée se casse. */
       var figs = (d.chiffres || []).filter(function (f) { return filled(f && f.n) || filled(f && f.l); });
       if (figs.length) {
-        if (figs.length < 2 || figs.length > 4) errs.push('chiffres : ' + figs.length + ' entrée(s) remplie(s), 2 à 4 attendues.');
         figs.forEach(function (f) {
           if (!filled(f.n)) errs.push('chiffres : "' + f.l + '" est un libellé sans son nombre.');
           else if (f.n.trim().length > 8) errs.push('chiffres : "' + f.n + '" dépasse 8 caractères.');
@@ -456,16 +455,24 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       if (filled(d.github) && !/^https:\/\/(www\.)?github\.com\/[^\s"']+$/.test(d.github.trim())) {
         errs.push('github : une URL https absolue sur github.com est attendue.');
       }
-      /* media : facultatif depuis que la page projet sait s'ouvrir sans
-         visuel. Rempli à moitié, en revanche, il bloque le build. */
-      var m = d.media || {};
-      if (filled(m.src) || parseInt(m.w, 10) > 0 || parseInt(m.h, 10) > 0 || filled(m.alt) || filled(m.poster)) {
-        if (!filled(m.src)) errs.push('media.src : obligatoire, chemin relatif à src/.');
-        if (!(parseInt(m.w, 10) > 0)) errs.push('media.w : entier positif attendu.');
-        if (!(parseInt(m.h, 10) > 0)) errs.push('media.h : entier positif attendu.');
-        if (m.type === 'image' && !filled(m.alt)) errs.push('media.alt : obligatoire pour une image.');
-        if (m.type === 'video' && !filled(m.poster)) errs.push('media.poster : obligatoire pour une vidéo.');
-      }
+      errs = errs.concat(mediaErrs(d.media, true));
+    }
+    return errs;
+  }
+
+  /* media : facultatif dans les deux tableaux, la ligne comme la page
+     projet savent s'afficher sans visuel. Rempli à moitié, en revanche, il
+     bloque le build. La liste des projets n'accepte que l'image. */
+  function mediaErrs(m, allowVideo) {
+    var errs = [];
+    m = m || {};
+    var type = allowVideo && m.type === 'video' ? 'video' : 'image';
+    if (filled(m.src) || parseInt(m.w, 10) > 0 || parseInt(m.h, 10) > 0 || filled(m.alt) || (type === 'video' && filled(m.poster))) {
+      if (!filled(m.src)) errs.push('media.src : obligatoire, chemin relatif à src/.');
+      if (!(parseInt(m.w, 10) > 0)) errs.push('media.w : entier positif attendu.');
+      if (!(parseInt(m.h, 10) > 0)) errs.push('media.h : entier positif attendu.');
+      if (type === 'image' && !filled(m.alt)) errs.push('media.alt : obligatoire pour une image.');
+      if (type === 'video' && !filled(m.poster)) errs.push('media.poster : obligatoire pour une vidéo.');
     }
     return errs;
   }
@@ -579,9 +586,9 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
         + '<span class="chip__count' + (n > 3 ? ' bad' : '') + '">' + n + '/3 mot' + (n > 1 ? 's' : '') + '</span>'
         + '<button class="icon-btn" type="button" data-fig-del="' + i + '" aria-label="Retirer ce chiffre">×</button></div>';
     }).join('');
-    return '<div class="field field--full"><span class="lbl">Chiffres clés · facultatifs, 2 à 4, en tête du bloc Résultat</span>'
+    return '<div class="field field--full"><span class="lbl">Chiffres clés · facultatifs, en tête du bloc Résultat</span>'
       + '<div class="chips">' + rows + '</div>'
-      + (figs.length < 4 ? '<p><button class="btn btn--quiet" type="button" id="fig-add">+ Ajouter un chiffre</button></p>' : '')
+      + '<p><button class="btn btn--quiet" type="button" id="fig-add">+ Ajouter un chiffre</button></p>'
       + '<p class="help">Le nombre en huit caractères, le libellé en trois mots. Vide, la rangée ne s\'affiche pas.</p>'
       + '</div>';
   }
@@ -601,14 +608,17 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       + field('github', 'Dépôt GitHub', d.github, { full: true, placeholder: 'https://github.com/m-gdfr/projet', help: 'Le bouton s\'intitule « Le code sur GitHub », rien à saisir.' });
   }
 
-  function mediaRow(d) {
+  /* imageSeule : la vignette de la liste des projets, qui refuse la vidéo.
+     Le type ne se choisit donc pas, et le chemin prend toute la ligne. */
+  function mediaRow(d, imageSeule) {
     var m = d.media || {};
-    var isVideo = m.type === 'video';
-    return '<div class="field field--full"><span class="lbl">Media · fichier déposé dans src/assets/media/</span></div>'
-      + '<div class="field"><label for="f-mtype">Type</label><select id="f-mtype" data-media="type">'
-      + '<option value="image"' + (isVideo ? '' : ' selected') + '>Image</option>'
-      + '<option value="video"' + (isVideo ? ' selected' : '') + '>Vidéo</option></select></div>'
-      + '<div class="field"><label for="f-msrc">Chemin</label><input type="text" id="f-msrc" data-media="src" value="' + esc(m.src) + '" placeholder="assets/media/scan-avis.webp" spellcheck="false"><p class="help">Relatif à src/. Le fichier se dépose dans src/assets/media/.</p></div>'
+    var isVideo = !imageSeule && m.type === 'video';
+    return '<div class="field field--full"><span class="lbl">' + (imageSeule ? 'Vignette · image facultative, déposée dans src/assets/media/' : 'Media · fichier déposé dans src/assets/media/') + '</span></div>'
+      + (imageSeule ? ''
+        : '<div class="field"><label for="f-mtype">Type</label><select id="f-mtype" data-media="type">'
+        + '<option value="image"' + (isVideo ? '' : ' selected') + '>Image</option>'
+        + '<option value="video"' + (isVideo ? ' selected' : '') + '>Vidéo</option></select></div>')
+      + '<div class="field' + (imageSeule ? ' field--full' : '') + '"><label for="f-msrc">Chemin</label><input type="text" id="f-msrc" data-media="src" value="' + esc(m.src) + '" placeholder="assets/media/scan-avis.webp" spellcheck="false"><p class="help">Relatif à src/. Le fichier se dépose dans src/assets/media/.</p></div>'
       + '<div class="field"><label for="f-mw">Largeur en px</label><input type="text" id="f-mw" data-media="w" value="' + esc(m.w) + '" inputmode="numeric"></div>'
       + '<div class="field"><label for="f-mh">Hauteur en px</label><input type="text" id="f-mh" data-media="h" value="' + esc(m.h) + '" inputmode="numeric"></div>'
       + (isVideo
@@ -634,7 +644,8 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
         + field('id', 'Identifiant', d.id, { help: 'Calculé depuis le nom. Modifiable tant qu\'il reste en [a-z0-9-].' })
         + field('date', 'Date', d.date, { placeholder: '2024 à 2025' })
         + field('client', 'Client', d.client, { help: 'Le commanditaire, pas le domaine.' })
-        + colorRow(d);
+        + colorRow(d)
+        + mediaRow(d, true);
     } else if (col === 'parcours') {
       body = field('nom', 'Nom', d.nom)
         + field('id', 'Identifiant', d.id)
@@ -973,10 +984,24 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       if (k.indexOf('__') === 0) return;
       out[k] = d[k];
     });
+    /* Les champs facultatifs vides partent, ils ne descendent pas dans le
+       JSON sous forme de coquilles que le build aurait à trier. */
+    var m = out.media || {};
+    if (filled(m.src)) {
+      var video = state.col === 'page-projet' && m.type === 'video';
+      out.media = {
+        type: video ? 'video' : 'image',
+        src: String(m.src).trim(),
+        w: parseInt(m.w, 10) || 0,
+        h: parseInt(m.h, 10) || 0
+      };
+      if (video) out.media.poster = String(m.poster || '').trim();
+      else out.media.alt = String(m.alt || '').trim();
+    } else {
+      delete out.media;
+    }
     if (state.col === 'page-projet') {
       out.perimetre = (out.perimetre || []).filter(function (x) { return filled(x); });
-      /* Les champs facultatifs vides partent, ils ne descendent pas dans le
-         JSON sous forme de coquilles que le build aurait à trier. */
       var li = out.lien || {};
       if (filled(li.libelle) && filled(li.url)) {
         out.lien = { libelle: li.libelle.trim(), url: li.url.trim() };
@@ -987,19 +1012,6 @@ a.btn { display: inline-block; text-decoration: none; line-height: normal; }
       var figs = (out.chiffres || []).filter(function (f) { return filled(f && f.n) && filled(f && f.l); })
         .map(function (f) { return { n: String(f.n).trim(), l: String(f.l).trim() }; });
       if (figs.length) out.chiffres = figs; else delete out.chiffres;
-      var m = out.media || {};
-      if (filled(m.src)) {
-        out.media = {
-          type: m.type === 'video' ? 'video' : 'image',
-          src: String(m.src).trim(),
-          w: parseInt(m.w, 10) || 0,
-          h: parseInt(m.h, 10) || 0
-        };
-        if (out.media.type === 'image') out.media.alt = String(m.alt || '').trim();
-        else out.media.poster = String(m.poster || '').trim();
-      } else {
-        delete out.media;
-      }
     }
     Object.keys(out).forEach(function (k) {
       if (typeof out[k] === 'string') out[k] = out[k].trim();

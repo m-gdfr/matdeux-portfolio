@@ -745,6 +745,9 @@ a { color: inherit; }
 }
 /* Tant que data-loading est là, l'image reste floue. Si elle ne charge
    jamais, ce flou reste, plutôt que de laisser un trou. */
+/* L'image réelle remplit la vignette comme le dégradé : recadrée, jamais
+   étirée. */
+.visual__file { display: block; object-fit: cover; }
 .visual[data-loading] .visual__img {
   filter: blur(18px);
   transform: scale(1.06);
@@ -1334,6 +1337,11 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
   background: linear-gradient(160deg, #fff0c2, #fcb07a);
 }
 .pj-visual svg { display: block; width: 100%; height: 100%; }
+/* Le fichier réel, image ou vidéo, tient dans l'encart sans être rogné :
+   une prise en portrait se lit en entier, posée sur l'encre, plutôt que
+   coupée à la hauteur d'un 16:9. */
+.pj-visual--file { background: var(--color-suie); }
+.pj-visual__file { display: block; width: 100%; height: 100%; object-fit: contain; }
 .pj-visual__img { transition: filter 420ms var(--ease-out), transform 420ms var(--ease-out); }
 .pj-visual[data-loading] .pj-visual__img { filter: blur(18px); transform: scale(1.06); }
 .pj-cap {
@@ -1374,9 +1382,9 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
 .pj-media[data-playing] .pj-play__d { opacity: 0; }
 .pj-media[data-playing] .pj-play:hover .pj-play__d,
 .pj-media[data-playing] .pj-play:focus-visible .pj-play__d { opacity: 1; }
-/* Le média définitif sera une vidéo. En attendant, un lent travelling : la
-   seule façon honnête de dire « ça joue » sans encoder une vidéo. */
-.pj-media[data-playing] .pj-visual__img { animation: pj-play-zoom 16s linear both; }
+/* Sans vidéo, un lent travelling sur le visuel de substitution : la seule
+   façon honnête de dire « ça joue » sans fichier à lire. */
+.pj-media[data-playing] svg.pj-visual__img { animation: pj-play-zoom 16s linear both; }
 @keyframes pj-play-zoom { from { transform: scale(1); } to { transform: scale(1.12); } }
 
 /* ---------------------------------------------------------------------------
@@ -1575,7 +1583,7 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
      joue tout seul, est supprimé. */
   .pj-sheet, .pj-scrim, main { transition-duration: 1ms !important; }
   .pj-visual__img { transition: filter 420ms linear; transform: none !important; }
-  .pj-media[data-playing] .pj-visual__img { animation: none; }
+  .pj-media[data-playing] svg.pj-visual__img { animation: none; }
   .pj-navc__a, .pj-close, .pj-btn { transition-property: background-color, color, opacity; }
 }
 </style>
@@ -2039,9 +2047,25 @@ const PROJETS = [/* projets-data */];
      suite ; les autres attendent d'approcher du centre. Un visuel qui échoue
      garde son flou de chargement indéfiniment, la ligne reste cliquable. */
   function loadVisuals() {
-    list.querySelectorAll('.visual[data-loading]').forEach((v, i) => {
-      if (i > netIndex + 1) return;
-      setTimeout(() => v.removeAttribute('data-loading'), 260 + i * 180);
+    rows.forEach((r, i) => {
+      const v = r.querySelector('.visual[data-loading]');
+      if (!v || i > netIndex + 1 || v.hasAttribute('data-pending')) return;
+      v.setAttribute('data-pending', '');
+      /* Le flou se lève quand l'image est là, jamais avant : le délai étagé
+         reste un plancher, pas une promesse. Une image en échec garde son
+         flou. */
+      const img = v.querySelector('img');
+      if (img) img.loading = 'eager';
+      const charge = !img ? Promise.resolve(true)
+        : img.complete ? Promise.resolve(img.naturalWidth > 0)
+        : new Promise((ok) => {
+          img.addEventListener('load', () => ok(true), { once: true });
+          img.addEventListener('error', () => ok(false), { once: true });
+        });
+      const delai = new Promise((ok) => setTimeout(ok, 260 + i * 180));
+      Promise.all([charge, delai]).then(([charge]) => {
+        if (charge) v.removeAttribute('data-loading');
+      });
     });
   }
 
@@ -2423,7 +2447,19 @@ const pageProjet = (() => {
      la vignette qu'on vient de cliquer et le média d'ouverture doivent être
      reconnaissables l'un dans l'autre.
      --------------------------------------------------------------------- */
-  function visuel(p, id, cap) {
+  function visuel(p, id, cap, m) {
+    /* Le fichier du projet quand il existe. La vidéo ne charge rien avant
+       qu'on la lance : le poster suffit à tenir la place. */
+    if (m && m.src) {
+      const fichier = m.type === 'video'
+        ? `<video class="pj-visual__img pj-visual__file" src="${m.src}" poster="${m.poster}"
+                 width="${m.w}" height="${m.h}" preload="none" playsinline
+                 aria-label="${cap}"></video>`
+        : `<img class="pj-visual__img pj-visual__file" src="${m.src}"
+               width="${m.w}" height="${m.h}" alt="${cap}" decoding="async">`;
+      return `
+      <div class="pj-visual pj-visual--file" data-loading>${fichier}</div>`;
+    }
     return `
       <div class="pj-visual" data-loading>
         <svg class="pj-visual__img" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice"
@@ -2541,8 +2577,8 @@ const pageProjet = (() => {
       </header>
 
       <figure class="pj-media" id="pj-media">
-        ${visuel(p, 'pj-g-media', c.media.cap)}
-        <button class="pj-play" id="pj-play" type="button"
+        ${visuel(p, 'pj-g-media', c.media.cap, c.media)}
+        ${c.media.type === 'image' ? '' : `<button class="pj-play" id="pj-play" type="button"
                 aria-label="Lire la présentation du projet">
           <span class="pj-play__d">
             <svg class="pj-play__play" width="20" height="20" viewBox="0 0 24 24"
@@ -2552,7 +2588,7 @@ const pageProjet = (() => {
               <rect x="6" y="5" width="4" height="14" rx="1"/>
               <rect x="14" y="5" width="4" height="14" rx="1"/></svg>
           </span>
-        </button>
+        </button>`}
         <figcaption class="pj-cap">${c.media.cap}</figcaption>
       </figure>
 
@@ -2579,10 +2615,24 @@ const pageProjet = (() => {
 
     const media = document.getElementById('pj-media');
     const play = document.getElementById('pj-play');
-    play.addEventListener('click', () => {
-      const on = media.toggleAttribute('data-playing');
+    const video = media.querySelector('video');
+    const etat = (on) => {
+      media.toggleAttribute('data-playing', on);
       play.setAttribute('aria-label', on ? 'Mettre en pause' : 'Lire la présentation du projet');
-    });
+    };
+    if (video) {
+      /* L'état suit la vidéo, pas le clic : une lecture refusée ou une fin
+         de fichier remettent d'elles-mêmes la pastille de lecture. */
+      video.addEventListener('play', () => etat(true));
+      video.addEventListener('pause', () => etat(false));
+      video.addEventListener('ended', () => { etat(false); video.load(); });
+      play.addEventListener('click', () => {
+        if (video.paused) video.play().catch(() => etat(false));
+        else video.pause();
+      });
+    } else if (play) {
+      play.addEventListener('click', () => etat(!media.hasAttribute('data-playing')));
+    }
 
     scroll.scrollTop = 0;
     scroll.removeAttribute('data-scrolled');
@@ -2648,6 +2698,8 @@ const pageProjet = (() => {
     if (!document.body.hasAttribute('data-projet')) return;
     /* L'aperçu n'a rien derrière lui qui vaille d'être montré. */
     if (document.documentElement.hasAttribute('data-apercu')) return;
+    const video = scroll.querySelector('video');
+    if (video) video.pause();
     document.body.removeAttribute('data-projet');
     document.body.setAttribute('data-pj-sortie', '');
     clearTimeout(sortie);
