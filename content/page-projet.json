@@ -1,5 +1,27 @@
 [
   {
+    "id": "leboncoin",
+    "chapo": "Sur leboncoin, les profils vendeurs sont pleins d'étoiles et vides d'informations. L'acheteur n'y apprend rien sur la personne à qui il va acheter. La cause n'est pas dans les avis eux-mêmes, elle est dans leur conception : l'avis mesure une satisfaction, et non une évaluation.",
+    "contexte": "Le brief de Leboncoin part d'une intuition : un vendeur qui vend vite revient déposer une nouvelle annonce. Pour vendre plus vite, il faut que l'acheteur se décide plus vite.\n\nPour se rassurer, l'acheteur se tourne vers les avis. Il y trouve deux symptômes :\n• Des commentaires absents ou automatiques.\n• Des commentaires qui ne disent rien.\nIn fine, il a toujours un doute sur la fiabilité des vendeurs.\n\nLes deux symptômes ont une cause commune. L'avis a été conçu comme une mesure de satisfaction, remplie une fois l'échange terminé. Il n'a jamais été pensé comme une fiche de renseignement pour le prochain acheteur.",
+    "enjeu": "Faire de l'avis une information utile à celui qui le lira.",
+    "demarche": "Il faut d'abord que l'acheteur rédige l'avis, sinon rien d'autre n'existe. À l'ouverture de l'app, une carte affiche avec la photo du vendeur et une question : « Comment s'est passé votre échange avec Victor ? ». On voit une personne, plus une transaction. Sous le bouton, une promesse : ce sera rapide. Moins de 30 secondes.\n\nLe formulaire remplace l'écriture par des cases à cocher.\n• Une note.\n• Comment s'est déroulé l'échange : vendeur réactif, prix renégocié, échange agréable ou tendu.\n• La conformité du produit : conforme, léger défaut, non conforme.\n• Et une recommandation, oui ou non.\n\nChaque case répond à une question que se pose le prochain acheteur. Le commentaire vient ensuite.\n\nL'acheteur peut l'écrire lui-même, ou laisse l'IA le rédiger à partir de ses réponses. Le texte devient complet sans redevenir un effort.\n\nUne fois l'avis rempli, les informations clés remontent sur le profil. La conformité est le cœur de la feature. Sur une annonce, l'état de l'objet n'est que la parole du vendeur. Avec l'avis, c'est un acheteur précédent qui le confirme.",
+    "resultat": "Le bon avis existe sous forme de prototype animé : la carte d'accueil, le formulaire, le commentaire et la pastille de conformité sur le profil.\n\nPour savoir si ça marche, je suis deux signaux. L'évolution du nombre d'avis renseignés. Un A/B test sur la prise de contact entre un profil aux avis complets, et un autre avec des avis vides.",
+    "perimetre": [
+      "Entretiens utilisateurs",
+      "Diagnostic de la cause racine",
+      "Conception du formulaire d'avis",
+      "Prototype animé",
+      "Définition des signaux"
+    ],
+    "media": {
+      "type": "image",
+      "src": "assets/media/Leboncoin.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo Le bon avis"
+    }
+  },
+  {
     "id": "scan-avis",
     "chapo": "Les avis, souvent négatifs, sont la matière produit la moins exploitée du web. Scan-avis les convertit en irritants hiérarchisés, et les haters deviennent des contributeurs.",
     "contexte": "Lorsqu'un utilisateur écrit un avis après une mauvaise expérience. Il décrit précisément ce qui l'a bloqué.\n\nMais la marque ne lit pas ce message comme une information. Elle lit ses avis comme une note à défendre. Elle répond, modère, fait remonter la moyenne.\n\nC'est comme ça que des milliers de descriptions de problèmes réels ne sont pas traités.",
@@ -94,28 +116,6 @@
       "poster": "assets/media/Extension-tgi.jpg",
       "w": 1920,
       "h": 1080
-    }
-  },
-  {
-    "id": "leboncoin",
-    "chapo": "Sur leboncoin, les profils vendeurs sont pleins d'étoiles et vides d'informations. L'acheteur n'y apprend rien sur la personne à qui il va acheter. La cause n'est pas dans les avis eux-mêmes, elle est dans leur conception : l'avis mesure une satisfaction, et non une évaluation.",
-    "contexte": "Le brief de Leboncoin part d'une intuition : un vendeur qui vend vite revient déposer une nouvelle annonce. Pour vendre plus vite, il faut que l'acheteur se décide plus vite.\n\nPour se rassurer, l'acheteur se tourne vers les avis. Il y trouve deux symptômes :\n• Des commentaires absents ou automatiques.\n• Des commentaires qui ne disent rien.\nIn fine, il a toujours un doute sur la fiabilité des vendeurs.\n\nLes deux symptômes ont une cause commune. L'avis a été conçu comme une mesure de satisfaction, remplie une fois l'échange terminé. Il n'a jamais été pensé comme une fiche de renseignement pour le prochain acheteur.",
-    "enjeu": "Faire de l'avis une information utile à celui qui le lira.",
-    "demarche": "Il faut d'abord que l'acheteur rédige l'avis, sinon rien d'autre n'existe. À l'ouverture de l'app, une carte affiche avec la photo du vendeur et une question : « Comment s'est passé votre échange avec Victor ? ». On voit une personne, plus une transaction. Sous le bouton, une promesse : ce sera rapide. Moins de 30 secondes.\n\nLe formulaire remplace l'écriture par des cases à cocher.\n• Une note.\n• Comment s'est déroulé l'échange : vendeur réactif, prix renégocié, échange agréable ou tendu.\n• La conformité du produit : conforme, léger défaut, non conforme.\n• Et une recommandation, oui ou non.\n\nChaque case répond à une question que se pose le prochain acheteur. Le commentaire vient ensuite.\n\nL'acheteur peut l'écrire lui-même, ou laisse l'IA le rédiger à partir de ses réponses. Le texte devient complet sans redevenir un effort.\n\nUne fois l'avis rempli, les informations clés remontent sur le profil. La conformité est le cœur de la feature. Sur une annonce, l'état de l'objet n'est que la parole du vendeur. Avec l'avis, c'est un acheteur précédent qui le confirme.",
-    "resultat": "Le bon avis existe sous forme de prototype animé : la carte d'accueil, le formulaire, le commentaire et la pastille de conformité sur le profil.\n\nPour savoir si ça marche, je suis deux signaux. L'évolution du nombre d'avis renseignés. Un A/B test sur la prise de contact entre un profil aux avis complets, et un autre avec des avis vides.",
-    "perimetre": [
-      "Entretiens utilisateurs",
-      "Diagnostic de la cause racine",
-      "Conception du formulaire d'avis",
-      "Prototype animé",
-      "Définition des signaux"
-    ],
-    "media": {
-      "type": "image",
-      "src": "assets/media/Leboncoin.jpg",
-      "w": 1920,
-      "h": 1080,
-      "alt": "Logo Le bon avis"
     }
   }
 ]

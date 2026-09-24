@@ -1,5 +1,21 @@
 [
   {
+    "id": "leboncoin",
+    "date": "sept. 2026",
+    "nom": "Le bon avis",
+    "client": "Leboncoin",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#171613",
+    "media": {
+      "type": "image",
+      "src": "assets/media/Leboncoin.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo Le bon avis"
+    }
+  },
+  {
     "id": "scan-avis",
     "date": "sept. 2026",
     "nom": "Scan-avis",
@@ -45,22 +61,6 @@
       "w": 1920,
       "h": 1080,
       "alt": "Logo Extension TGI"
-    }
-  },
-  {
-    "id": "leboncoin",
-    "date": "sept. 2026",
-    "nom": "Le bon avis",
-    "client": "Leboncoin",
-    "a": "#fff0c2",
-    "b": "#fa520f",
-    "c": "#171613",
-    "media": {
-      "type": "image",
-      "src": "assets/media/Leboncoin.jpg",
-      "w": 1920,
-      "h": 1080,
-      "alt": "Logo Le bon avis"
     }
   }
 ]
