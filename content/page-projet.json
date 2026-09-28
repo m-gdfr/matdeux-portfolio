@@ -83,9 +83,9 @@
     "media": {
       "type": "video",
       "src": "assets/media/Le Booster.mp4",
-      "w": 864,
+      "w": 1920,
       "h": 1080,
-      "poster": "assets/media/Le Booster.jpg"
+      "poster": "assets/media/Le Booster - 16_9.jpg"
     }
   },
   {

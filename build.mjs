@@ -507,7 +507,7 @@ function ligneParcours(x) {
   </h3>
   <div class="xp__fold" id="fold-${x.id}" role="region" aria-label="${nom}">
     <div class="xp__foldInner">
-      <p class="xp__body">${escapeHtml(x.body)}</p>
+      <div class="xp__body">${paragraphes(x.body).map((t) => `<p>${t}</p>`).join('')}</div>
     </div>
   </div>
 </li>`;
