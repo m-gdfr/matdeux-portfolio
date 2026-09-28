@@ -337,10 +337,12 @@ a { color: inherit; }
 }
 
 /* Label et manifeste forment une seule boite en max-content, centree sur la
-   page, le label cale sur le centre vertical du manifeste. */
+   page. Le label reste cale sur le centre vertical des trois lignes du
+   manifeste, pas sur la colonne entiere : le bouton Profil en dessous ne
+   doit pas le faire descendre. */
 .duo {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 96px;
   width: max-content;
   max-width: 100%;
@@ -369,18 +371,57 @@ a { color: inherit; }
   background: var(--color-ember);     /* Ember en aplat, jamais en texte */
   /* Purement decoratif : ni clignotement, ni animation de saisie. */
 }
-.vignette {
-  display: inline-block;
-  vertical-align: -0.2em;
-  margin-left: 0.24em;
-  width: 1.05em;
-  height: 1.05em;
+.duo__col { width: max-content; max-width: 100%; min-width: 0; }
+
+/* ---- Bouton Profil -----------------------------------------------------
+   Sous le manifeste, et non sur le nom de l'en-tete : un nom ne dit pas
+   qu'il s'ouvre. Le portrait quitte la fin de la phrase pour devenir
+   l'icone du bouton, un visage annonce un profil mieux qu'un mot seul.
+   Meme grammaire que l'ancre Projets : 550, soulignement Ember au survol.
+   Cache sans JavaScript, la feuille qu'il ouvre n'existe pas sans lui.
+   ---------------------------------------------------------------------- */
+.profil-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 4px 4px 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 17px;
+  font-weight: var(--weight-lede);
+  letter-spacing: -0.014em;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.profil-btn[hidden] { display: none; }
+.profil-btn__photo {
+  display: block;
+  flex: none;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   object-fit: cover;
+  transition: transform 160ms var(--ease-out);
 }
+.profil-btn__word {
+  text-decoration: 1.5px solid underline transparent;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 150ms ease;
+}
+.profil-btn:hover .profil-btn__word,
+.profil-btn:focus-visible .profil-btn__word { text-decoration-color: var(--color-ember); }
+@media (hover: hover) and (pointer: fine) {
+  .profil-btn:hover .profil-btn__photo { transform: scale(1.06); }
+}
+.profil-btn:active .profil-btn__photo { transform: scale(0.96); transition-duration: 100ms; }
 
 .label-metier {
   margin: 0;
+  /* Centre des trois lignes du manifeste, moins la demi hauteur du label. */
+  margin-top: calc((34px * 1.26 * 3 - 17px * 1.4) / 2);
   color: var(--color-muted);
   font-size: 17px;
   line-height: 1.4;
@@ -443,9 +484,11 @@ a { color: inherit; }
 @media (max-width: 720px) {
   .duo { display: block; width: auto; margin-inline: 0; }
 
+  .duo__col { width: auto; }
   .label-metier {
     display: inline-flex;
     align-items: center;
+    margin-top: 0;
     margin-bottom: 16px;
     font-size: 13px;
     line-height: 1.2;
@@ -1005,6 +1048,7 @@ a { color: inherit; }
   .toast { transform: none !important; }
   .anchor:hover .anchor__arrow,
   .anchor:focus-visible .anchor__arrow { transform: none; }
+  .profil-btn__photo { transition: none; transform: none !important; }
 
   .xp__fold, .xp__body, .xp__mark, .xp__head { transition-duration: 1ms !important; }
   .parcours[data-js] .xp__body { transform: none !important; }
@@ -1519,6 +1563,35 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
 @media (hover: hover) and (pointer: fine) { .pj-btn:hover { background: var(--color-papier); } }
 
 /* ---------------------------------------------------------------------------
+   LE PROFIL. La même feuille que les projets, un autre contenu : un objet
+   déjà appris sur la page, pas un nouveau. Une colonne de texte, rien
+   d'autre, d'où une carte plus étroite sur ordinateur.
+   ------------------------------------------------------------------------ */
+.pf-head { padding: 56px var(--pj-pad) 32px; }
+.pf-id { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.pf-id img { width: 48px; height: 48px; border-radius: 999px; object-fit: cover; flex: none; }
+.pf-id__n { display: block; font-size: 17px; font-weight: var(--weight-lede); letter-spacing: -0.014em; line-height: 1.3; }
+.pf-id__r { display: block; font-size: 15px; color: var(--pj-ink-muted); line-height: 1.3; }
+.pf-t {
+  margin: 0;
+  max-width: 20ch;
+  font-size: 28px; font-weight: var(--weight-title);
+  line-height: 1.18; letter-spacing: -0.026em;
+}
+.pf-body { padding: 0 var(--pj-pad) 40px; max-width: calc(46ch + 2 * var(--pj-pad)); }
+.pf-body p { margin: 0; }
+.pf-body p + p { margin-top: 16px; }
+/* Le nom d'un projet cité mène au projet. Soulignement Ember, encre papier. */
+.pf-link {
+  font-weight: var(--weight-lede);
+  color: var(--pj-ink);
+  text-decoration: 1.5px solid underline var(--color-ember);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .pf-link:hover { text-decoration-color: currentColor; } }
+
+/* ---------------------------------------------------------------------------
    ORDINATEUR. Même objet, posé au centre : il n'y a pas de bas d'écran vers
    lequel glisser, il ne monte donc pas, il s'approche.
    ------------------------------------------------------------------------ */
@@ -1557,6 +1630,12 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
     opacity: 1;
     transition-duration: 260ms, 200ms;
   }
+
+  /* Le profil tient en 46ch : à 960px la colonne flotterait à gauche. */
+  .pj-sheet[data-kind="profil"] { width: min(600px, calc(100vw - 96px)); }
+  .pf-head { padding: 56px 48px 32px; }
+  .pf-t { font-size: 32px; line-height: 1.16; letter-spacing: -0.028em; }
+  .pf-body { padding: 0 48px 48px; max-width: none; }
 
   .pj-hero { padding: 96px 48px 72px; }
   .pj-title { font-size: 66px; max-width: 13ch; }
@@ -1660,7 +1739,15 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
         <div class="duo">
           <p class="label-metier rise">product manager</p>
 
-          <h1 class="manifeste rise rise--2">Comprendre les utilisateurs<br>pour leur apporter des<br>solutions qui ont du sens.<span class="manifeste__cursor" aria-hidden="true"></span><img class="vignette" src="assets/portrait.jpg" width="120" height="120" alt="Portrait de Mathieu Godefroy"></h1>
+          <div class="duo__col">
+            <h1 class="manifeste rise rise--2">Comprendre les utilisateurs<br>pour leur apporter des<br>solutions qui ont du sens.<span class="manifeste__cursor" aria-hidden="true"></span></h1>
+
+            <button class="profil-btn rise rise--3" id="btn-profil" type="button"
+                    aria-haspopup="dialog" hidden>
+              <img class="profil-btn__photo" src="assets/portrait.jpg" width="120" height="120" alt="">
+              <span class="profil-btn__word">Profil</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1738,6 +1825,36 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
   </button>
   <div class="pj-scroll" id="pj-scroll"></div>
 </section>
+
+<!-- LE PROFIL. Rendu dans la feuille projet par le script. Un nom de projet
+     cité porte data-projet-id : il ouvre la page de ce projet. -->
+<template id="profil-tpl">
+  <div class="pj-topbar"><p class="pj-topbar__t">Profil</p></div>
+  <header class="pf-head">
+    <div class="pf-id">
+      <img src="assets/portrait.jpg" width="120" height="120" alt="Portrait de Mathieu Godefroy">
+      <div><span class="pf-id__n">Mathieu Godefroy</span><span class="pf-id__r">Product manager</span></div>
+    </div>
+    <h1 class="pf-t" id="pj-titre">J'ai commencé dans la publicité, à parler à des cibles. Aujourd'hui, je construis des produits pour elles.</h1>
+  </header>
+  <div class="pf-body">
+    <p>J'ai été formé à la communication, spécialité publicité.</p>
+    <p>Chez Havas Media, j'ai piloté des campagnes digitales pour Crédit Agricole, BForBank et Paylib. Chaque semaine, je suivais le coût par acquisition et je réallouais les budgets. J'y ai appris à mesurer l'effet de chaque décision.</p>
+    <p>Chez Australie.GAD, j'analysais les audiences pour dire aux créatifs à qui ils s'adressaient. C'est là que j'ai construit mon premier produit, <a class="pf-link" href="/projets/extension-tgi" data-projet-id="extension-tgi">Extension TGI</a>&nbsp;: une extension Google Sheets qui nettoie les exports d'audience en un clic. Elle fait gagner une heure par export.</p>
+    <p>En publicité, j'ai toujours réfléchi à l'impact que nous avions sur la cible. Et le produit va encore plus loin, parce qu'il agit sur ce que les gens vivent au quotidien. Une expérience vécue dans le produit marque plus qu'un message publicitaire.</p>
+    <p>Mon projet <a class="pf-link" href="/projets/le-booster" data-projet-id="le-booster">Le Booster</a> part de cette conviction&nbsp;: sur Deezer, les artistes féminines ne portent que 26&nbsp;% du temps d'écoute. À la base, j'étais briefé pour une campagne de communication, et j'ai imaginé une réponse dans l'app elle-même.</p>
+  </div>
+  <footer class="pj-foot">
+    <div class="pj-contact">
+      <p>On en parle&nbsp;?</p>
+      <a class="pj-btn" href="mailto:godefroy.mth@gmail.com">Écrire à Mathieu
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12h15"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
+      </a>
+    </div>
+  </footer>
+</template>
 
 <script src="assets/dust.js"></script>
 
@@ -2583,6 +2700,7 @@ const pageProjet = (() => {
      contenu et son pied de carte. La carte peut ainsi être rendue depuis une
      donnée qui n'est pas dans la page, ce dont vit dist/apercu.html. */
   function rendreDonnee(p, c, piedHtml) {
+    sheet.removeAttribute('data-kind');
     const corps = c.blocs.filter((b) => !b.result);
     const resultat = c.blocs.find((b) => b.result);
 
@@ -2677,9 +2795,41 @@ const pageProjet = (() => {
     return PROJETS[i] && PROJETS[i].id ? '/projets/' + PROJETS[i].id : '/#projet-' + (i + 1);
   }
 
+  /* Le profil occupe la même feuille. courant vaut alors PROFIL, ce qui
+     force le rendu du projet au prochain ouvrir(i). */
+  const PROFIL = 'profil';
+  const tplProfil = document.getElementById('profil-tpl');
+
+  function rendreProfil() {
+    scroll.innerHTML = tplProfil.innerHTML;
+    sheet.setAttribute('data-kind', 'profil');
+    /* Un projet cité n'ouvre sa page que s'il en a une. Sinon le lien
+       ramène à la liste, où sa ligne reste cliquable. */
+    scroll.querySelectorAll('[data-projet-id]').forEach((a) => {
+      const j = PROJETS.findIndex((p) => p.id === a.dataset.projetId);
+      if (aDuContenu(j)) a.dataset.nav = String(j);
+      else { a.dataset.nav = 'liste'; a.setAttribute('href', '#projets'); }
+    });
+    scroll.scrollTop = 0;
+    scroll.removeAttribute('data-scrolled');
+    scroll.removeAttribute('data-moved');
+  }
+
+  function ouvrirProfil(trigger) {
+    if (!tplProfil) return false;
+    if (courant !== PROFIL) { courant = PROFIL; rendreProfil(); }
+    montrer(trigger, '/#profil', 'ouvre_profil');
+    return true;
+  }
+
   function ouvrir(i, trigger) {
     if (!aDuContenu(i)) return false;
     if (courant !== i) { courant = i; rendre(i); }
+    montrer(trigger, adresseProjet(i), 'ouvre_projet');
+    return true;
+  }
+
+  function montrer(trigger, adresse, evenement) {
     declencheur = trigger || null;
 
     /* Une réouverture immédiate ne doit pas hériter de la durée qu'un geste
@@ -2697,10 +2847,9 @@ const pageProjet = (() => {
     /* La page derrière sort de l'ordre de tabulation : sans cela, Tab sort de
        la carte par le bas et va lire une liste qu'on ne voit plus. */
     fond.forEach((n) => n.setAttribute('inert', ''));
-    poserAncre(adresseProjet(i));
+    poserAncre(adresse);
     btnClose.focus({ preventScroll: true });
-    track('ouvre_projet');
-    return true;
+    track(evenement);
   }
 
   /* L'aperçu. La carte est rendue depuis une donnée qui vient du dehors, et
@@ -2740,7 +2889,7 @@ const pageProjet = (() => {
     fond.forEach((n) => n.removeAttribute('inert'));
     document.documentElement.style.overflow = '';
     document.documentElement.style.paddingRight = '';
-    poserAncre('/#projets');
+    poserAncre(courant === PROFIL ? '/' : '/#projets');
     if (declencheur && declencheur.isConnected) declencheur.focus({ preventScroll: true });
   }
 
@@ -2758,6 +2907,17 @@ const pageProjet = (() => {
     if (!c) return;
     e.preventDefault();
     if (c.dataset.nav === 'liste') { fermer(); return; }
+    /* Du profil vers un projet, sur ordinateur : la carte change de
+       largeur. Elle part, puis la page projet arrive, plutôt qu'une carte
+       qui s'élargit sous les yeux. Sur téléphone la largeur ne change pas,
+       le contenu se remplace sur place comme entre deux projets. */
+    if (courant === PROFIL && window.innerWidth > 860) {
+      const j = +c.dataset.nav;
+      const retour = declencheur;
+      fermer();
+      setTimeout(() => ouvrir(j, retour), reduced() ? 0 : SORTIE_FOND_MS);
+      return;
+    }
     if (verrou) return;
     verrou = true;
     setTimeout(() => {
@@ -2771,7 +2931,7 @@ const pageProjet = (() => {
 
   /* Filet de la barre interne, révélée dès que le titre part en haut. */
   scroll.addEventListener('scroll', () => {
-    const fin = scroll.querySelector('.pj-hero .pj-meta');
+    const fin = scroll.querySelector('.pj-hero .pj-meta, .pf-t');
     const seuil = fin ? fin.offsetTop + fin.offsetHeight - 62 : 220;
     scroll.toggleAttribute('data-scrolled', scroll.scrollTop > seuil);
     scroll.toggleAttribute('data-moved', scroll.scrollTop > 12);
@@ -2977,10 +3137,17 @@ const pageProjet = (() => {
      arrive ici : la page est en place avant qu'on gèle son défilement. Une
      ancre qui ne désigne aucun projet écrit ne fait rien, la liste reste la
      page. */
-  const cible = projetDemande();
-  if (cible >= 0) ouvrir(cible, null);
+  const btnProfil = document.getElementById('btn-profil');
+  if (btnProfil && tplProfil) {
+    btnProfil.hidden = false;
+    btnProfil.addEventListener('click', () => ouvrirProfil(btnProfil));
+  }
 
-  return { ouvrir, aDuContenu, apercu };
+  const cible = projetDemande();
+  if (location.hash === '#profil') ouvrirProfil(btnProfil);
+  else if (cible >= 0) ouvrir(cible, null);
+
+  return { ouvrir, ouvrirProfil, aDuContenu, apercu };
 })();
 </script>
 </body>
