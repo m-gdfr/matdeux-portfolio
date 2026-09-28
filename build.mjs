@@ -373,8 +373,8 @@ if (Array.isArray(pageProjet)) {
        étant échappé, c'est le seul endroit où une URL peut vivre.
 
        lien porte son libellé, parce qu'il nomme une chose différente à chaque
-       projet. github n'en porte pas : un lien vers du dépôt se nomme toujours
-       pareil, le gabarit le pose. */
+       projet. Celui de github est facultatif : absent, le gabarit écrit
+       « Le code sur GitHub ». */
     if (pp.lien != null) {
       const lctx = `${ctx}, lien`;
       if (typeof pp.lien !== 'object' || Array.isArray(pp.lien)) {
@@ -395,10 +395,21 @@ if (Array.isArray(pageProjet)) {
 
     if (pp.github != null) {
       const gctx = `${ctx}, github`;
-      if (!isNonEmptyString(pp.github)) {
-        err(`${gctx} : une URL est attendue, pas ${JSON.stringify(pp.github)}.`);
-      } else if (!/^https:\/\/(www\.)?github\.com\/[^\s"']+$/.test(pp.github.trim())) {
-        err(`${gctx} : une URL https absolue sur github.com est attendue ("${pp.github}").`);
+      if (typeof pp.github !== 'object' || Array.isArray(pp.github)) {
+        err(`${gctx} : un objet { libelle?, url } est attendu.`);
+      } else {
+        if (pp.github.libelle != null) {
+          if (!isNonEmptyString(pp.github.libelle)) {
+            err(`${gctx}.libelle : vide, à omettre plutôt.`);
+          } else if (wordCount(pp.github.libelle) > 6) {
+            err(`${gctx}.libelle : "${pp.github.libelle}" dépasse 6 mots.`);
+          }
+        }
+        if (!isNonEmptyString(pp.github.url)) {
+          err(`${gctx}.url : obligatoire.`);
+        } else if (!/^https:\/\/(www\.)?github\.com\/[^\s"']+$/.test(pp.github.url.trim())) {
+          err(`${gctx}.url : une URL https absolue sur github.com est attendue ("${pp.github.url}").`);
+        }
       }
     }
 
@@ -550,6 +561,7 @@ function paragraphes(texte) {
 }
 
 const donneeProjets = projets.map((p) => ({
+  id: p.id,
   date: escapeHtml(p.date),
   nom: escapeHtml(p.nom),
   theme: escapeHtml(p.client),
@@ -602,7 +614,12 @@ pageProjet.forEach((pp) => {
           : {}),
         p: paragraphes(pp.resultat),
         ...(pp.lien ? { lien: { libelle: escapeHtml(pp.lien.libelle), url: escapeHtml(pp.lien.url.trim()) } } : {}),
-        ...(pp.github ? { github: escapeHtml(pp.github.trim()) } : {})
+        ...(pp.github
+          ? { github: {
+              url: escapeHtml(pp.github.url.trim()),
+              ...(pp.github.libelle ? { libelle: escapeHtml(pp.github.libelle.trim()) } : {})
+            } }
+          : {})
       }
     ]
   };
@@ -721,8 +738,12 @@ const SHIM_APERCU = `<style>
     if (lienUrl && String((pp.lien || {}).libelle || '').trim()) {
       resultat.lien = { libelle: texte(pp.lien.libelle), url: lienUrl };
     }
-    var git = adresse(pp.github);
-    if (git) resultat.github = git;
+    var gh = pp.github || {};
+    var git = adresse(gh.url);
+    if (git) {
+      resultat.github = { url: git };
+      if (String(gh.libelle || '').trim()) resultat.github.libelle = texte(gh.libelle);
+    }
 
     var alt = String((pp.media || {}).alt || '').trim();
     var media = { cap: alt ? esc(alt) : 'Visuel du projet ' + p.nom };
@@ -788,7 +809,52 @@ const SHIM_APERCU = `<style>
 
 writeFileSync(join(distDir, 'apercu.html'), out.replace('</body>', SHIM_APERCU + '</body>'), 'utf8');
 
-console.log(`Build terminé : ${projets.length} projet(s), ${parcours.length} expérience(s), ${pageProjet.length} page(s) projet.`);
+/* ==========================================================================
+   dist/projets/<id>/index.html : l'adresse qu'on partage.
+
+   La même page que l'accueil, qui ouvre d'elle-même la carte du projet en
+   lisant son chemin. Seul l'en-tête change : un aperçu de lien ne lit que
+   lui, sans exécuter le script, et il doit montrer le projet plutôt que
+   Mathieu. La vignette est celle de la ligne du projet sur l'accueil ; un
+   projet sans vignette garde l'image du site. Un projet sans page projet
+   n'a pas d'adresse, sa carte ne s'ouvrirait pas.
+   ======================================================================= */
+const SITE = 'https://matdeux-portfolio.vercel.app';
+
+function remplaceMeta(html, attr, nom, valeur) {
+  const re = new RegExp(`(<meta ${attr}="${nom}" content=")[^"]*(">)`);
+  if (!re.test(html)) {
+    console.error(`src/index.html : la balise ${nom} est absente de l'en-tête.`);
+    process.exit(1);
+  }
+  return html.replace(re, (_, a, b) => a + valeur + b);
+}
+
+let pagesPartage = 0;
+projets.forEach((p, i) => {
+  const pp = pageProjet.find((x) => x.id === p.id);
+  if (!pp || !donneePageProjet[i]) return;
+  const titre = `${escapeHtml(p.nom)}, Mathieu Godefroy`;
+  const desc = escapeHtml(pp.chapo.replace(/\s+/g, ' ').trim());
+  let h = out.replace(/<title>[^<]*<\/title>/, `<title>${titre}</title>`);
+  h = remplaceMeta(h, 'name', 'description', desc);
+  h = remplaceMeta(h, 'property', 'og:type', 'article');
+  h = remplaceMeta(h, 'property', 'og:url', `${SITE}/projets/${p.id}`);
+  h = remplaceMeta(h, 'property', 'og:title', titre);
+  h = remplaceMeta(h, 'property', 'og:description', desc);
+  if (p.media) {
+    h = remplaceMeta(h, 'property', 'og:image', `${SITE}/${cheminMedia(p.media.src)}`);
+    h = remplaceMeta(h, 'property', 'og:image:width', String(p.media.w));
+    h = remplaceMeta(h, 'property', 'og:image:height', String(p.media.h));
+    h = remplaceMeta(h, 'property', 'og:image:alt', escapeHtml(p.media.alt));
+  }
+  const dir = join(distDir, 'projets', p.id);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), h, 'utf8');
+  pagesPartage++;
+});
+
+console.log(`Build terminé : ${projets.length} projet(s), ${parcours.length} expérience(s), ${pageProjet.length} page(s) projet, ${pagesPartage} adresse(s) de partage.`);
 if (warnings.length > 0) {
   console.error(`${warnings.length} avertissement(s) :`);
   warnings.forEach((m) => console.error(`  - ${m}`));

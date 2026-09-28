@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mathieu Godefroy, product manager</title>
+<!-- Les chemins relatifs partent de la racine, y compris depuis une page
+     /projets/<id> : ses médias et ses polices sont ceux de l'accueil. -->
+<base href="/">
 <link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="assets/favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -1760,6 +1763,16 @@ function poserAncre(url) {
   }
 }
 
+/* Le projet que l'adresse désigne, ou -1. Deux formes : le chemin
+   /projets/<id>, celui qu'on partage, et l'ancienne ancre #projet-N, gardée
+   pour les liens déjà envoyés. */
+function projetDemande() {
+  const c = /^\/projets\/([a-z0-9-]+)\/?$/.exec(location.pathname);
+  if (c) return PROJETS.findIndex((p) => p.id === c[1]);
+  const a = /^#projet-(\d+)$/.exec(location.hash);
+  return a ? +a[1] - 1 : -1;
+}
+
 const onScroll = [];
 
 /* La liste des projets. Hors des deux modules qui la lisent, la section
@@ -2413,8 +2426,7 @@ const PROJETS = [/* projets-data */];
 
   /* US6, lien profond vers un projet. Une ancre morte ramène en tête de
      section, sans message. */
-  const m = /^#projet-(\d+)$/.exec(location.hash);
-  const i = m ? +m[1] - 1 : -1;
+  const i = projetDemande();
   if (i >= 0 && i < rows.length) centerRow(i, false);
 })();
 
@@ -2488,9 +2500,9 @@ const pageProjet = (() => {
       </div>`;
   }
 
-  /* Les sorties du chapitre Résultat. Le libellé du dépôt n'est pas saisi :
-     un lien vers du code se nomme toujours pareil, autant le poser ici. La
-     rangée n'existe pas quand aucun des deux liens n'est écrit. */
+  /* Les sorties du chapitre Résultat. Le libellé du dépôt est facultatif :
+     absent, il retombe sur « Le code sur GitHub ». La rangée n'existe pas
+     quand aucun des deux liens n'est écrit. */
   function sorties(b) {
     const l = [];
     if (b.lien) {
@@ -2498,11 +2510,11 @@ const pageProjet = (() => {
          target="_blank" rel="noopener noreferrer">${b.lien.libelle}</a>`);
     }
     if (b.github) {
-      l.push(`<a class="pj-lien pj-lien--code" href="${b.github}"
+      l.push(`<a class="pj-lien pj-lien--code" href="${b.github.url}"
          target="_blank" rel="noopener noreferrer">
         <svg class="icon icon--github" viewBox="0 0 16 15.61" fill="currentColor" aria-hidden="true">
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
-        </svg>Le code sur GitHub</a>`);
+        </svg>${b.github.libelle || 'Le code sur GitHub'}</a>`);
     }
     return l.length ? `<div class="pj-sorties">${l.join('')}</div>` : '';
   }
@@ -2654,6 +2666,14 @@ const pageProjet = (() => {
      largeur de la barre de défilement rendue en marge pour que la page ne
      saute pas d'un cran vers la droite.
      --------------------------------------------------------------------- */
+  /* L'adresse d'un projet est un vrai chemin, pas une ancre : les
+     messageries et les réseaux coupent souvent ce qui suit le #, et un
+     aperçu de lien ne se distingue que par le chemin. build.mjs écrit une
+     page par projet à cette adresse, avec sa propre vignette. */
+  function adresseProjet(i) {
+    return PROJETS[i] && PROJETS[i].id ? '/projets/' + PROJETS[i].id : '/#projet-' + (i + 1);
+  }
+
   function ouvrir(i, trigger) {
     if (!aDuContenu(i)) return false;
     if (courant !== i) { courant = i; rendre(i); }
@@ -2674,7 +2694,7 @@ const pageProjet = (() => {
     /* La page derrière sort de l'ordre de tabulation : sans cela, Tab sort de
        la carte par le bas et va lire une liste qu'on ne voit plus. */
     fond.forEach((n) => n.setAttribute('inert', ''));
-    poserAncre('#projet-' + (i + 1));
+    poserAncre(adresseProjet(i));
     btnClose.focus({ preventScroll: true });
     track('ouvre_projet');
     return true;
@@ -2717,7 +2737,7 @@ const pageProjet = (() => {
     fond.forEach((n) => n.removeAttribute('inert'));
     document.documentElement.style.overflow = '';
     document.documentElement.style.paddingRight = '';
-    poserAncre('#projets');
+    poserAncre('/#projets');
     if (declencheur && declencheur.isConnected) declencheur.focus({ preventScroll: true });
   }
 
@@ -2742,7 +2762,7 @@ const pageProjet = (() => {
       const j = +c.dataset.nav;
       courant = j;
       rendre(j);
-      poserAncre('#projet-' + (j + 1));
+      poserAncre(adresseProjet(j));
     }, 180);
   });
 
@@ -2954,8 +2974,8 @@ const pageProjet = (() => {
      arrive ici : la page est en place avant qu'on gèle son défilement. Une
      ancre qui ne désigne aucun projet écrit ne fait rien, la liste reste la
      page. */
-  const ancre = /^#projet-(\d+)$/.exec(location.hash);
-  if (ancre) ouvrir(+ancre[1] - 1, null);
+  const cible = projetDemande();
+  if (cible >= 0) ouvrir(cible, null);
 
   return { ouvrir, aDuContenu, apercu };
 })();

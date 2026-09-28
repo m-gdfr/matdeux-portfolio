@@ -14,7 +14,7 @@
       "Définition des métriques"
     ],
     "lien": {
-      "libelle": "Laisser un avis",
+      "libelle": "Essayer le prototype",
       "url": "https://leboncoin-avis-prototype.vercel.app/"
     },
     "media": {
@@ -55,13 +55,16 @@
       "libelle": "Voir le scan Qonto",
       "url": "https://scan-avis-demo.vercel.app/"
     },
-    "github": "https://github.com/m-gdfr/skill-scan-avis.git",
+    "github": {
+      "libelle": "Télécharger le skill",
+      "url": "https://github.com/m-gdfr/skill-scan-avis.git"
+    },
     "media": {
       "type": "video",
       "src": "assets/media/scan-avis.mp4",
-      "poster": "assets/media/Scan-avis.jpg",
       "w": 1920,
-      "h": 1080
+      "h": 1080,
+      "poster": "assets/media/Scan-avis.jpg"
     }
   },
   {
@@ -77,18 +80,12 @@
       "Mécanique de vote",
       "Définition des métriques"
     ],
-    "chiffres": [
-      {
-        "n": "26 %",
-        "l": "temps d'écoute"
-      }
-    ],
     "media": {
       "type": "video",
       "src": "assets/media/Le Booster.mp4",
-      "poster": "assets/media/Le Booster.jpg",
       "w": 864,
-      "h": 1080
+      "h": 1080,
+      "poster": "assets/media/Le Booster.jpg"
     }
   },
   {
@@ -117,9 +114,9 @@
     "media": {
       "type": "video",
       "src": "assets/media/vsl-extension-tgi.mp4",
-      "poster": "assets/media/Extension-tgi.jpg",
       "w": 1920,
-      "h": 1080
+      "h": 1080,
+      "poster": "assets/media/Extension-tgi.jpg"
     }
   }
 ]

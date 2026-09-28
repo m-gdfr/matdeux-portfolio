@@ -25,9 +25,10 @@ Le document porte un identifiant tiré au hasard par la page ; c'est le champ
 page se fait donc en écrivant sur l'identifiant existant, sinon l'entrée est
 dédoublée. Le champ `ordre` range la liste, il ne part pas dans le JSON.
 `chiffres`, `lien`, `github` et `media` sont facultatifs : ils sont omis quand
-ils sont absents ou vides, jamais écrits sous forme de coquille. `lien` porte
-son libellé parce qu'il nomme une chose différente à chaque projet ; `github`
-est une simple URL, le gabarit pose son libellé.
+ils sont absents ou vides, jamais écrits sous forme de coquille. `lien` et
+`github` sont des objets `{ libelle, url }`. Le libellé de `lien` est
+obligatoire, celui de `github` facultatif : omis, le gabarit écrit « Le code
+sur GitHub ».
 
 `chiffres` est la rangée de chiffres clés posée en tête du bloc Résultat : des
 objets `{ n, l }` en nombre libre, le nombre en huit caractères, le libellé en
