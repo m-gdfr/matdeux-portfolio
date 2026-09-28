@@ -138,6 +138,8 @@ a { color: inherit; }
   letter-spacing: -0.014em;
   white-space: nowrap;      /* le nom garde la priorite, jamais comprime */
   margin-right: auto;
+  color: inherit;
+  text-decoration: none;
 }
 
 /* Une seule rangee de cibles de 32px. Le retrait negatif ramene le dernier
@@ -217,6 +219,159 @@ a { color: inherit; }
   .link-github { width: 32px; padding: 0; }
   .link-github__word { display: none; }
   .site-header__inner { height: 64px; }
+}
+
+/* ===========================================================================
+   SOMMAIRE, trois traits sous le nom.
+
+   Un trait par section, dans l'ordre de la page. Celui de la section en
+   cours est plein et long, les deux autres courts et pâles : on lit où l'on
+   est sans lire un mot. Le survol, ou le tap au doigt, déplie par-dessus les
+   traits la liste des trois sections, dans le même ordre, à la même place.
+
+   Hors du bandeau, et non dedans : quand le bandeau se masque, la pile monte
+   prendre la place du nom au même rythme que lui (220ms, --ease-out), et
+   redescend quand il revient. Elle reste donc atteignable partout, sur
+   ordinateur comme sur téléphone.
+
+   La pastille qui porte les traits prend la couleur du fond qu'elle survole,
+   parchemin ou Ember encre, sans bord. Elle ne se voit pas ; elle sert à
+   masquer le texte qui défile dessous, qui sans elle se ferait rayer par
+   les traits. C'est un morceau de bandeau de 40px, pas un bouton de plus.
+
+   Sans JavaScript, la pile n'est pas affichée : elle n'aurait rien à dire,
+   et l'ancre du hero comme le halo de Projets mènent déjà partout.
+   ======================================================================== */
+.som {
+  /* Deux positions, calculées sur le nom. Visible : la pastille commence
+     sous la boîte de ligne du nom, sans la chevaucher. Masqué : les traits
+     se centrent sur la ligne où était le nom. */
+  --som-pad-x: 10px;
+  --som-pad-y: 10px;
+  --som-top: 62px;
+  --som-top-hidden: 17px;
+
+  position: fixed;
+  z-index: 101;
+  top: var(--som-top);
+  left: calc(max(var(--gutter), (100% - var(--page-max-width)) / 2 + var(--gutter)) - var(--som-pad-x));
+  display: none;
+  color: var(--color-suie);
+  --som-ground: var(--color-parchment-canvas);
+  transition: transform 220ms var(--ease-out);
+}
+.som[data-js] { display: block; }
+.som[data-hidden] { transform: translateY(calc(var(--som-top-hidden) - var(--som-top))); }
+.som[data-ember] {
+  color: var(--color-papier);
+  --som-ground: #c04408;
+}
+.som[data-ember] :focus-visible { outline-color: var(--color-papier); }
+/* La carte projet recouvre tout, bandeau compris. */
+body[data-projet] .som,
+body[data-pj-sortie] .som { opacity: 0; visibility: hidden; }
+
+/* Téléphone. Bandeau de 64px, nom centré dessus : sa boîte de ligne finit
+   à 46px, la cible de 44 x 44 commence à 51. Les deux cibles ne se
+   touchent pas. */
+@media (max-width: 720px) {
+  .som { --som-pad-x: 12px; --som-pad-y: 13px; --som-top: 51px; --som-top-hidden: 10px; }
+}
+
+.som-trigger {
+  display: block;
+  padding: var(--som-pad-y) var(--som-pad-x);
+  border: 0;
+  border-radius: 8px;
+  background: var(--som-ground);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* La longueur passe par scaleX depuis la gauche : le trait garde sa boîte,
+   rien ne se recalcule autour de lui. */
+.som-marks { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.som-mark {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform-origin: left center;
+  transform: scaleX(0.6);
+  opacity: 0.28;
+  transition: transform 200ms var(--ease-out), opacity 200ms ease;
+}
+.som-mark[data-active] { transform: scaleX(1); opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .som-trigger:hover .som-mark:not([data-active]) { opacity: 0.5; }
+}
+
+/* ---- Le panneau ---------------------------------------------------------
+   Il se pose par-dessus les traits, coin sur coin : il en est la version
+   lisible. Les deux premières couches de --shadow-xl seulement, la pile
+   complète porte à 256px, elle est faite pour un grand panneau sombre. */
+.som-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 240px;
+  padding: 6px;
+  background: var(--color-papier);
+  color: var(--color-suie);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow:
+    rgba(127, 99, 21, 0.12) -8px 16px 39px 0px,
+    rgba(127, 99, 21, 0.1) -33px 64px 72px 0px;
+  transform-origin: top left;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.97);
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out), visibility 0s linear 120ms;
+}
+.som[data-open] .som-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s;
+}
+/* Le panneau est papier sur les deux fonds, son liseré reste Ember. */
+.som-panel :focus-visible { outline-color: var(--color-ember); outline-offset: -2px; }
+
+.som-list { list-style: none; margin: 0; padding: 0; }
+.som-list li + li { margin-top: 2px; }
+.som-item {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  font-weight: var(--weight-lede);
+  text-decoration: none;
+  color: var(--color-suie);
+  transition: background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .som-item:hover { background: rgba(23, 22, 19, 0.06); } }
+.som-item:active { background: rgba(23, 22, 19, 0.1); }
+/* Le nombre d'entrées de la section : dire ce qu'on va trouver avant d'y
+   aller. Écrit par le script, qui compte ce que le build a produit. */
+.som-item__meta { font-size: 13px; font-weight: var(--weight-body); color: var(--color-muted); }
+/* La puce Ember dit où l'on est, l'idiome d'état du système. */
+.som-item__dot { width: 7px; height: 7px; border-radius: 999px; background: var(--color-ember); opacity: 0; }
+.som-item[aria-current] .som-item__dot { opacity: 1; }
+
+/* Au doigt, des lignes de 44px et le corps de lecture. */
+@media (max-width: 720px), (pointer: coarse) {
+  .som-item { min-height: 44px; font-size: 17px; }
 }
 
 /* ---- Pastille de copie ------------------------------------------------- */
@@ -595,7 +750,7 @@ a { color: inherit; }
   transition: opacity 260ms var(--ease-out), visibility 0s linear 260ms;
 }
 .projets[data-chrome] .projets__fade,
-.projets[data-chrome] .outro {
+.projets[data-halo] .outro {
   opacity: 1;
   visibility: visible;
   transition: opacity 260ms var(--ease-out), visibility 0s;
@@ -1053,6 +1208,11 @@ a { color: inherit; }
   .xp__fold, .xp__body, .xp__mark, .xp__head { transition-duration: 1ms !important; }
   .parcours[data-js] .xp__body { transform: none !important; }
 
+  /* Sommaire. La pile saute à sa place, le trait actif change d'un coup ;
+     le panneau garde son fondu, sans le léger zoom. */
+  .som, .som-mark { transition-duration: 1ms !important; }
+  .som-panel, .som[data-open] .som-panel { transform: none !important; }
+
   /* Projets. Le zoom saute, le recentrage et les transitions de focus
      deviennent instantanes. Le flou, lui, reste : c'est une information de
      hierarchie, pas une animation. */
@@ -1143,11 +1303,11 @@ body[data-projet] .site-header { transform: translateY(-100%); }
 body[data-projet] .projets__fade,
 body[data-projet] .projets[data-chrome] .projets__fade,
 body[data-projet] .outro,
-body[data-projet] .projets[data-chrome] .outro,
+body[data-projet] .projets[data-halo] .outro,
 body[data-pj-sortie] .projets__fade,
 body[data-pj-sortie] .projets[data-chrome] .projets__fade,
 body[data-pj-sortie] .outro,
-body[data-pj-sortie] .projets[data-chrome] .outro {
+body[data-pj-sortie] .projets[data-halo] .outro {
   opacity: 0;
   visibility: hidden;
   transition: none;
@@ -1687,7 +1847,7 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
 
 <header class="site-header" id="site-header">
   <div class="site-header__inner wrap">
-    <span class="site-name">Mathieu Godefroy</span>
+    <a class="site-name" href="/" id="site-name">Mathieu Godefroy</a>
 
     <nav class="header-actions" aria-label="Liens de contact">
       <!-- GitHub en toutes lettres : c'est celui qu'on veut faire cliquer -->
@@ -1731,6 +1891,27 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
     </nav>
   </div>
 </header>
+
+<!-- Le sommaire. Hors du bandeau, pour lui survivre quand il se masque, et
+     hors de main, qui recule et se floute derrière la carte projet. -->
+<nav class="som" id="som" aria-label="Sommaire de la page">
+  <button class="som-trigger" id="som-trigger" type="button"
+          aria-expanded="false" aria-controls="som-panel">
+    <span class="sr-only">Sommaire</span>
+    <span class="som-marks" aria-hidden="true">
+      <i class="som-mark" data-key="accueil"></i>
+      <i class="som-mark" data-key="projets"></i>
+      <i class="som-mark" data-key="parcours"></i>
+    </span>
+  </button>
+  <div class="som-panel" id="som-panel">
+    <ul class="som-list">
+      <li><a class="som-item" href="#accueil" data-key="accueil"><span class="som-item__dot" aria-hidden="true"></span><span>Accueil</span></a></li>
+      <li><a class="som-item" href="#projets" data-key="projets"><span class="som-item__dot" aria-hidden="true"></span><span>Projets</span><span class="som-item__meta" data-count="#projets-list .row"></span></a></li>
+      <li><a class="som-item" href="#parcours" data-key="parcours"><span class="som-item__dot" aria-hidden="true"></span><span>Parcours</span><span class="som-item__meta" data-count="#parcours .xp"></span></a></li>
+    </ul>
+  </div>
+</nav>
 
 <main>
   <section class="hero" id="accueil">
@@ -1901,11 +2082,25 @@ const onScroll = [];
 const PROJETS = [/* projets-data */];
 
 /* ==========================================================================
+   Le nom ramène en haut de page. Sans JavaScript, c'est un lien vers
+   l'accueil ; avec, on remonte sans recharger.
+   ======================================================================= */
+(() => {
+  const nom = document.getElementById('site-name');
+  if (!nom) return;
+  nom.addEventListener('click', (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+    poserAncre(location.pathname + location.search);
+  });
+})();
+
+/* ==========================================================================
    Ancre Projets
    ======================================================================= */
 (() => {
   const anchor = document.getElementById('anchor-projets');
-  const slot = document.getElementById('anchor-slot');
 
   anchor.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1915,10 +2110,8 @@ const PROJETS = [/* projets-data */];
     poserAncre('#projets');
   });
 
-  /* L'ancre n'est plus affichee quand l'accueil a quitte l'ecran */
-  new IntersectionObserver(([entry]) => {
-    slot.toggleAttribute('data-gone', entry.intersectionRatio < 0.25);
-  }, { threshold: [0, 0.25, 0.5] }).observe(document.getElementById('accueil'));
+  /* L'ancre s'efface au relais, quand le halo Parcours prend la place :
+     voir LE CHROME DE L'ÉCRAN, dans la section Projets. */
 
   /* Passage effectif dans Projets, une seule fois par session */
   let fired = false;
@@ -1934,10 +2127,11 @@ const PROJETS = [/* projets-data */];
   const header = document.getElementById('site-header');
   let last = window.scrollY;
   let ticking = false;
+  let survol = false;
 
   function update() {
     const y = window.scrollY;
-    if (y > 96 && y > last) header.setAttribute('data-hidden', '');
+    if (y > 96 && y > last && !survol) header.setAttribute('data-hidden', '');
     else header.removeAttribute('data-hidden');
     last = y;
     ticking = false;
@@ -1947,6 +2141,197 @@ const PROJETS = [/* projets-data */];
     onScroll.forEach((fn) => fn());
     if (!ticking) { ticking = true; requestAnimationFrame(update); }
   }, { passive: true });
+
+  /* Sur ordinateur, le pointeur qui monte contre le haut de l'écran rappelle
+     le bandeau, et il reste tant que le pointeur est dessus. Au doigt, il n'y
+     a pas de survol : le défilement vers le haut suffit. */
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const BORD = 24;
+    document.addEventListener('mousemove', (e) => {
+      /* Le sommaire, remonté à la place du nom, touche ce bord : le viser
+         ne doit pas rappeler le bandeau, qui le ferait redescendre sous le
+         pointeur. */
+      if (e.clientY <= BORD && header.hasAttribute('data-hidden') &&
+          !(e.target.closest && e.target.closest('#som'))) {
+        survol = true;
+        header.removeAttribute('data-hidden');
+      }
+    }, { passive: true });
+    header.addEventListener('mouseenter', () => { survol = true; });
+    header.addEventListener('mouseleave', () => { survol = false; });
+    document.documentElement.addEventListener('mouseleave', () => { survol = false; });
+  }
+})();
+
+/* ==========================================================================
+   SOMMAIRE. Trois traits, la section en cours marquée, la liste au survol.
+
+   Chaque entrée passe par le mécanisme qui existe déjà pour y aller : le nom
+   pour l'accueil, l'ancre du hero pour Projets, le halo pour Parcours. Le
+   sommaire ne sait pas faire défiler la page, il sait seulement où cliquer.
+   ======================================================================= */
+(() => {
+  const som = document.getElementById('som');
+  if (!som) return;
+  const trigger = document.getElementById('som-trigger');
+  const panel = document.getElementById('som-panel');
+  const header = document.getElementById('site-header');
+  const parcours = document.getElementById('parcours');
+  const items = [...panel.querySelectorAll('.som-item')];
+  const marks = [...som.querySelectorAll('.som-mark')];
+  const survolable = window.matchMedia('(hover: hover) and (pointer: fine)');
+  som.setAttribute('data-js', '');
+
+  /* Les nombres sont comptés dans la page, pas écrits : ils suivent ce que
+     le build a produit à partir de content/. */
+  panel.querySelectorAll('[data-count]').forEach((el) => {
+    el.textContent = document.querySelectorAll(el.dataset.count).length || '';
+  });
+
+  const ALLER = {
+    accueil: () => document.getElementById('site-name').click(),
+    projets: () => document.getElementById('anchor-projets').click(),
+    parcours: () => document.getElementById('outro-parcours').click(),
+  };
+
+  /* ---- Ouverture ---------------------------------------------------------
+     Au survol, une intention de 70ms avant d'ouvrir, pour qu'un pointeur qui
+     ne fait que passer vers le nom n'allume rien, et 180ms de grâce à la
+     sortie, pour glisser des traits au panneau sans le perdre. */
+  let ouvert = false, tOuvre = 0, tFerme = 0, yOuverture = 0;
+
+  function ouvrir(focusCourant) {
+    clearTimeout(tFerme);
+    if (!ouvert) {
+      ouvert = true;
+      yOuverture = window.scrollY;
+      som.setAttribute('data-open', '');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+    if (focusCourant) (panel.querySelector('[aria-current]') || items[0]).focus({ preventScroll: true });
+  }
+  function fermer(rendreFocus) {
+    clearTimeout(tOuvre);
+    if (!ouvert) return;
+    ouvert = false;
+    som.removeAttribute('data-open');
+    trigger.setAttribute('aria-expanded', 'false');
+    if (rendreFocus) trigger.focus({ preventScroll: true });
+  }
+
+  som.addEventListener('pointerenter', (e) => {
+    if (e.pointerType !== 'mouse' || !survolable.matches) return;
+    clearTimeout(tFerme);
+    tOuvre = setTimeout(() => ouvrir(false), 70);
+  });
+  som.addEventListener('pointerleave', (e) => {
+    if (e.pointerType !== 'mouse' || !survolable.matches) return;
+    clearTimeout(tOuvre);
+    tFerme = setTimeout(() => fermer(false), 180);
+  });
+
+  /* Au clavier (detail 0), on entre dans la liste sur l'entrée courante. À
+     la souris ou au doigt, le clic bascule. */
+  trigger.addEventListener('click', (e) => {
+    if (e.detail === 0) { ouvrir(true); return; }
+    if (ouvert) fermer(false); else ouvrir(false);
+  });
+
+  panel.addEventListener('click', (e) => {
+    const a = e.target.closest('.som-item');
+    if (!a) return;
+    e.preventDefault();
+    const clavier = e.detail === 0;
+    fermer(false);
+    ALLER[a.dataset.key]();
+    /* Au clavier, le focus suit : Tab repart de la section atteinte. */
+    const cible = document.getElementById(a.dataset.key);
+    if (clavier && cible && cible.hasAttribute('tabindex')) cible.focus({ preventScroll: true });
+    else if (clavier) trigger.focus({ preventScroll: true });
+  });
+
+  som.addEventListener('keydown', (e) => {
+    const i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape' && ouvert) {
+      /* Arrêtée ici : Parcours écoute aussi Échap, pour refermer sa fiche. */
+      e.stopPropagation();
+      fermer(true);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!ouvert || i < 0) ouvrir(true); else items[Math.min(i + 1, items.length - 1)].focus();
+    } else if (e.key === 'ArrowUp' && ouvert) {
+      e.preventDefault();
+      items[Math.max(i - 1, 0)].focus();
+    }
+  });
+
+  /* Le focus quitte le sommaire : il se referme. */
+  som.addEventListener('focusout', (e) => {
+    if (!e.relatedTarget || !som.contains(e.relatedTarget)) fermer(false);
+  });
+
+  /* Tap ou clic ailleurs. */
+  document.addEventListener('pointerdown', (e) => {
+    if (ouvert && !som.contains(e.target)) fermer(false);
+  });
+
+  /* ---- État ---------------------------------------------------------------
+     La section en cours est celle qui passe sous la ligne des 40 % de la
+     fenêtre : assez haut pour qu'une section qui entre par le bas ne vole pas
+     la place avant d'être lue, assez bas pour que celle qui sort ne s'accroche
+     pas. */
+  const SECTIONS = ['accueil', 'projets', 'parcours'].map((id) => document.getElementById(id));
+  let courante = '';
+
+  function peindre() {
+    som.toggleAttribute('data-hidden', header.hasAttribute('data-hidden'));
+
+    /* L'encre suit le fond sous la pile, pas le bandeau : masqué, le
+       bandeau ne dit plus rien de ce qu'il y a dessous. */
+    const r = trigger.getBoundingClientRect();
+    const y = r.top + r.height / 2;
+    const p = parcours.getBoundingClientRect();
+    som.toggleAttribute('data-ember', p.top <= y && p.bottom > y);
+
+    const ligne = window.innerHeight * 0.4;
+    let sec = 'accueil';
+    SECTIONS.forEach((s) => {
+      const b = s.getBoundingClientRect();
+      if (b.top <= ligne && b.bottom > ligne) sec = s.id;
+    });
+    if (sec !== courante) {
+      courante = sec;
+      marks.forEach((m) => m.toggleAttribute('data-active', m.dataset.key === sec));
+      items.forEach((a) => {
+        if (a.dataset.key === sec) a.setAttribute('aria-current', 'location');
+        else a.removeAttribute('aria-current');
+      });
+    }
+
+    /* Au doigt, un défilement franc vaut fermeture. Au survol, le pointeur
+       sur le panneau décide seul. */
+    if (ouvert && !survolable.matches && Math.abs(window.scrollY - yOuverture) > 48) fermer(false);
+  }
+
+  let attente = false;
+  const planifier = () => {
+    if (attente) return;
+    attente = true;
+    requestAnimationFrame(() => { attente = false; peindre(); });
+  };
+  onScroll.push(planifier);
+  window.addEventListener('resize', planifier);
+  /* Le bandeau se masque au défilement, mais revient aussi sans défilement,
+     quand le pointeur monte contre le haut de l'écran : on suit l'attribut,
+     pas le geste. Et le fond sous la pile se remesure une fois la pile à
+     sa nouvelle place. */
+  new MutationObserver(() => {
+    peindre();
+    setTimeout(planifier, 240);
+  }).observe(header, { attributes: true, attributeFilter: ['data-hidden'] });
+
+  peindre();
+  document.fonts.ready.then(planifier);
 })();
 
 /* ==========================================================================
@@ -1963,7 +2348,7 @@ const PROJETS = [/* projets-data */];
 
   const CTA = `
     <a class="toast__cta" href="mailto:${MAIL}">
-      Écrire à Mathieu
+      Restons en contact
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M4 12h15"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/>
@@ -2384,21 +2769,28 @@ const PROJETS = [/* projets-data */];
 
   /* ==========================================================================
      LE CHROME DE L'ÉCRAN, fondu du haut et halo du bas.
-     Ils arrivent quand l'accueil a entièrement quitté l'écran, exactement
-     comme quand on clique l'ancre du hero, et repartent dès que Parcours
-     entre : posés sur l'orange plein de Parcours, ils ne seraient plus que
-     des salissures.
+
+     Le fondu arrive quand l'accueil a quitté l'écran. Le bord adjacent
+     compte comme parti : après un clic sur l'ancre du hero, le bas de
+     l'accueil tombe pile sur le haut de la fenêtre.
+
+     Le halo, lui, fait relais avec l'ancre Projets du hero : quand le haut
+     de la section passe la moitié de l'écran, l'ancre s'efface et le halo
+     arrive. Une seule sortie à l'écran à la fois, et le halo est là dès le
+     premier projet, sur téléphone comme sur ordinateur.
+
+     Les deux repartent dès que Parcours entre : posés sur l'orange plein de
+     Parcours, ils ne seraient plus que des salissures.
      ======================================================================= */
   (() => {
     const accueil = document.getElementById('accueil');
     const parcours = document.getElementById('parcours');
-    if (!accueil || !parcours) { section.setAttribute('data-chrome', ''); return; }
-
-    let accueilParti = false, parcoursEntre = false;
-    const maj = () => section.toggleAttribute('data-chrome', accueilParti && !parcoursEntre);
-
-    new IntersectionObserver(([e]) => { accueilParti = !e.isIntersecting; maj(); },
-      { threshold: 0 }).observe(accueil);
+    const slot = document.getElementById('anchor-slot');
+    if (!accueil || !parcours) {
+      section.setAttribute('data-chrome', '');
+      section.setAttribute('data-halo', '');
+      return;
+    }
 
     /* Parcours ne compte comme entré que lorsqu'il dépasse le haut du halo,
        et non dès son premier pixel : sur le dernier projet, le bas de la
@@ -2407,8 +2799,25 @@ const PROJETS = [/* projets-data */];
        savoir par où sortir. La marge est figée sur la valeur large ; sur
        téléphone le halo mesure 112px et part donc un peu plus tôt, ce qui ne
        se voit pas. */
-    new IntersectionObserver(([e]) => { parcoursEntre = e.isIntersecting; maj(); },
-      { threshold: 0, rootMargin: '0px 0px -141px 0px' }).observe(parcours);
+    const MARGE_PARCOURS = 141;
+
+    let q = false;
+    function maj() {
+      q = false;
+      const vh = window.innerHeight;
+      const A = accueil.getBoundingClientRect();
+      const P = section.getBoundingClientRect();
+      const T = parcours.getBoundingClientRect();
+      const parcoursEntre = T.top < vh - MARGE_PARCOURS && T.bottom > 0;
+      const relais = P.top <= vh / 2;
+      section.toggleAttribute('data-chrome', A.bottom <= 1 && !parcoursEntre);
+      section.toggleAttribute('data-halo', relais && !parcoursEntre);
+      if (slot) slot.toggleAttribute('data-gone', relais);
+    }
+    const demander = () => { if (!q) { q = true; requestAnimationFrame(maj); } };
+    onScroll.push(demander);
+    window.addEventListener('resize', demander);
+    maj();
   })();
 
   /* ==========================================================================
@@ -2741,7 +3150,7 @@ const pageProjet = (() => {
         ${piedHtml}
         <div class="pj-contact">
           <p>Ce projet ressemble au vôtre ?</p>
-          <a class="pj-btn" href="mailto:${MAIL}">Écrire à Mathieu
+          <a class="pj-btn" href="mailto:${MAIL}">Restons en contact
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 12h15"/><path d="m12.5 5.5 6.5 6.5-6.5 6.5"/></svg>
