@@ -1,28 +1,65 @@
 [
   {
-    "id": "leboncoin",
-    "chapo": "Sur Leboncoin, les profils vendeurs sont pleins d'étoiles mais vides d'informations. L'acheteur n'y apprend rien sur la personne à qui il va acheter. La cause n'est pas dans les avis eux-mêmes, elle est dans leur conception : l'avis mesure une satisfaction, et non une évaluation.",
-    "contexte": "Le brief de Leboncoin part d'une intuition : un vendeur qui vend vite revient déposer une nouvelle annonce. Et pour vendre plus vite, il faut que l'acheteur se décide plus vite.\n\nLes avis sont un outil efficace pour rassurer les acheteurs. Mais la plupart du temps, ils se confrontent à deux problèmes : des commentaires automatiques ou des commentaires sans fond.\n\nIn fine, il y a toujours un doute sur la fiabilité du vendeur.",
-    "enjeu": "Faire de l'avis une information utile à celui qui le lira.",
-    "demarche": "Le problème principal à adresser est de motiver un acheteur à laisser un avis, sinon rien d'autre n'existe.\n\nJ'ai travaillé sur une incitation plus marquée, et plus humaine, pour rédiger l'avis.\n\nÀ l'ouverture de l'app, une carte affiche la photo du vendeur et une question : « Comment s'est passé votre échange avec Victor ? ». Avec une promesse : ce sera rapide. Moins de 30 secondes.\n\nUne fois l'acheteur prêt à laisser un avis, le second problème est l'énergie qu'il met dans ce processus. J'ai élaboré un formulaire dans la lignée du formulaire de dépôt d'annonce : « fluide », « sans friction », « rapide », pour reprendre les termes de notre user research.\n\nLe formulaire remplace l'écriture par des cases à cocher : la note, les caractéristiques de l'échange, la conformité du produit et une recommandation.\n\nChaque case répond à une question que se pose le prochain acheteur. Le commentaire vient ensuite.\n\nL'acheteur peut l'écrire lui-même, ou laisser l'IA le rédiger à partir de ses réponses. Le texte devient complet sans redevenir un effort.",
-    "resultat": "Pour vérifier le résultat, je suis deux signaux. L'évolution du nombre d'avis renseignés. Un A/B test sur la prise de contact entre un profil aux avis complets, et un autre avec des avis vides.",
+    "id": "floorplantoskp",
+    "chapo": "Pour un architecte, passer de son plan 2D à une maquette 3D veut dire retravailler tout le plan dans son logiciel 3D. Le même travail est donc fait deux fois. J’ai conçu floorplantoskp, une extension SketchUp qui lit le plan et construit la maquette à sa place.",
+    "contexte": "Le plan d’un bâtiment naît dans AutoCAD, le logiciel de dessin technique. Pour montrer le projet en volume, l’architecte passe ensuite à SketchUp, le logiciel de maquette 3D.\n\nLes deux logiciels ne se comprennent pas. Un plan AutoCAD n’est qu’un ensemble de traits. SketchUp ne sait pas lequel est un mur, une porte ou une fenêtre.\n\nL’architecte reprend donc chaque mur à la main. Il le monte à la bonne hauteur, puis il découpe chaque porte et chaque fenêtre. Ce travail n’ajoute rien au projet, c'est du temps perdu.",
+    "enjeu": "Passer directement du plan AutoCAD à la maquette SketchUp.",
+    "demarche": "Le vrai défi du projet est de savoir à quoi sert chaque calque. Les calques sont des feuilles de dessin posées les unes sur les autres. Chaque agence les nomment et dessinent à sa façon.\n\nJ’ai confié cette lecture à Mistral, une IA européenne. Elle analyse le nom et le contenu de chaque calque puis propose un rôle pour chacun.\n\nMais une erreur de l’IA donnerait un mur au mauvais endroit. J’ai donc ajouté un écran de confirmation : l’extension montre le plan reconstitué avec des annotations sur les points à vérifier. L’architecte garde la main sur le rendu. \n\nUne fois le plan reconstitué, toute l'extension se joue dans de bons calculs et des programmes Python qui analysent les différentes données des calques (rôle, mesure, emplacement...) pour en faire une structure cohérente et prête à l'emploi.",
+    "resultat": "Une extension qui passe d'un plan 2D en maquette 3D. \n\nAvec des gardes-fous pour la précision du rendu. Une expérience fluide avec le minimum d'intervention humaine. Et un rendu en moins d'une minute.",
     "perimetre": [
-      "Entretiens utilisateurs",
-      "Diagnostic du problème",
-      "Conception du formulaire d'avis",
-      "Prototype animé",
-      "Définition des métriques"
+      "Interview utilisateur",
+      "Cadrage du besoin",
+      "Identifier cas d'usage IA",
+      "Expérience utilisateur",
+      "Développement technique"
+    ],
+    "chiffres": [
+      {
+        "n": "1 min",
+        "l": "rendu maquette 3D"
+      }
     ],
     "lien": {
-      "libelle": "Essayer le prototype",
-      "url": "https://leboncoin-avis-prototype.vercel.app/"
+      "libelle": "Découvrez l'extension",
+      "url": "https://www.floorplantoskp.fr/"
     },
     "media": {
-      "type": "image",
-      "src": "assets/media/Leboncoin.jpg",
+      "type": "video",
+      "src": "assets/media/floorplantoskp.mp4",
       "w": 1920,
       "h": 1080,
-      "alt": "Logo Le bon avis"
+      "poster": "assets/media/floorplantoskp.jpg"
+    }
+  },
+  {
+    "id": "extension-tgi",
+    "chapo": "Chez Australie, chaque étude d'audience partait d'un tableur à nettoyer à la main, et chaque projet demandait une dizaine d'études d'audience. J'ai conçu une extension Google Sheets qui fait ce travail. Un clic, et le tableau brut devient un tableau prêt à analyser.",
+    "contexte": "Une étude d'audience commence toujours de la même façon. On sort les données de Kantar TGI, et on obtient un tableau brut : des lignes et des colonnes en trop, une mise en forme inutilisable, des indicateurs qui ne servent pas l'analyse. Il faut plus d'une heure pour le rendre lisible. Et un projet peut compter jusqu'à dix exports.\n\nPersonne ne remettait ce temps en question. Il faisait partie du métier, comme une étape obligée avant le vrai travail. Mais une heure passée à nettoyer, c'est une heure qui ne va pas à l'analyse.\n\nL'extension retire cette étape : elle nettoie l'export en un clic, directement dans Google Sheets.",
+    "enjeu": "Passer de l'export à l'analyse sans étape manuelle.",
+    "demarche": "Pour construire l'outil, j'ai d'abord observé le nettoyage manuel et je l'ai décrit étape par étape. Cette spécification m'a servi à générer le script Apps Script avec une IA générative.\n\nL'extension supprime d'abord les lignes et les colonnes qui n'apportent rien. Elle remet ensuite le tableau en forme, pour que chaque colonne se lise d'un coup d'œil. Enfin, elle ne garde que les indicateurs utiles à l'analyse. Chaque étape reprend un geste que l'équipe faisait déjà à la main, dans le même ordre. Le résultat ressemble donc à ce qu'elle aurait produit elle-même.\n\nLe cœur du dispositif, c'est ce clic unique. L'outil vit là où l'équipe travaille déjà, dans Google Sheets, sans nouvel outil à apprendre ni fichier à déplacer. Il empêche les variations d'un nettoyage à l'autre : deux planneurs obtiennent le même tableau à partir du même export.\n\nSur un projet, un planneur répète le geste à chaque nouvel export, jusqu'à dix fois par projet. Le gain s'additionne à chaque clic.",
+    "resultat": "L'extension est déployée en janvier 2025 et utilisée par mon équipe sur ses études d'audience.\n\nLe nettoyage d'un export passe d'une heure à un clic. Sur un projet à dix exports, c'est jusqu'à dix heures rendues à l'analyse.",
+    "perimetre": [
+      "Cadrage du besoin",
+      "Spécification fonctionnelle",
+      "Développement Apps Script",
+      "Tests et déploiement"
+    ],
+    "chiffres": [
+      {
+        "n": "1 h",
+        "l": "gagnée par export"
+      },
+      {
+        "n": "10",
+        "l": "exports par projet"
+      }
+    ],
+    "media": {
+      "type": "video",
+      "src": "assets/media/vsl-extension-tgi.mp4",
+      "w": 1920,
+      "h": 1080,
+      "poster": "assets/media/Extension-tgi.jpg"
     }
   },
   {
@@ -68,6 +105,32 @@
     }
   },
   {
+    "id": "leboncoin",
+    "chapo": "Sur Leboncoin, les profils vendeurs sont pleins d'étoiles mais vides d'informations. L'acheteur n'y apprend rien sur la personne à qui il va acheter. La cause n'est pas dans les avis eux-mêmes, elle est dans leur conception : l'avis mesure une satisfaction, et non une évaluation.",
+    "contexte": "Le brief de Leboncoin part d'une intuition : un vendeur qui vend vite revient déposer une nouvelle annonce. Et pour vendre plus vite, il faut que l'acheteur se décide plus vite.\n\nLes avis sont un outil efficace pour rassurer les acheteurs. Mais la plupart du temps, ils se confrontent à deux problèmes : des commentaires automatiques ou des commentaires sans fond.\n\nIn fine, il y a toujours un doute sur la fiabilité du vendeur.",
+    "enjeu": "Faire de l'avis une information utile à celui qui le lira.",
+    "demarche": "Le problème principal à adresser est de motiver un acheteur à laisser un avis, sinon rien d'autre n'existe.\n\nJ'ai travaillé sur une incitation plus marquée, et plus humaine, pour rédiger l'avis.\n\nÀ l'ouverture de l'app, une carte affiche la photo du vendeur et une question : « Comment s'est passé votre échange avec Victor ? ». Avec une promesse : ce sera rapide. Moins de 30 secondes.\n\nUne fois l'acheteur prêt à laisser un avis, le second problème est l'énergie qu'il met dans ce processus. J'ai élaboré un formulaire dans la lignée du formulaire de dépôt d'annonce : « fluide », « sans friction », « rapide », pour reprendre les termes de notre user research.\n\nLe formulaire remplace l'écriture par des cases à cocher : la note, les caractéristiques de l'échange, la conformité du produit et une recommandation.\n\nChaque case répond à une question que se pose le prochain acheteur. Le commentaire vient ensuite.\n\nL'acheteur peut l'écrire lui-même, ou laisser l'IA le rédiger à partir de ses réponses. Le texte devient complet sans redevenir un effort.",
+    "resultat": "Pour vérifier le résultat, je suis deux signaux. L'évolution du nombre d'avis renseignés. Un A/B test sur la prise de contact entre un profil aux avis complets, et un autre avec des avis vides.",
+    "perimetre": [
+      "Entretiens utilisateurs",
+      "Diagnostic du problème",
+      "Conception du formulaire d'avis",
+      "Prototype animé",
+      "Définition des métriques"
+    ],
+    "lien": {
+      "libelle": "Essayer le prototype",
+      "url": "https://leboncoin-avis-prototype.vercel.app/"
+    },
+    "media": {
+      "type": "image",
+      "src": "assets/media/Leboncoin.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo Le bon avis"
+    }
+  },
+  {
     "id": "le-booster",
     "chapo": "En 2025, seuls 26 % du temps d'écoute sur Deezer étaient portés par des femmes. Pour faire face à ce problème, j'ai imaginé Le Booster. Une initiative où la communauté vote directement dans l’app pour donner de la visibilité aux talents féminins.",
     "contexte": "Les chiffres de Deezer posent le problème. En plus des 26 % mentionnés, seuls 30 des 100 titres les plus écoutés sur la plateforme sont portés par des femmes.\n\nMa réflexion produit part d'un constat. L'algorithme nous fait découvrir des titres proches de nos goûts, rarement un nouveau genre.\n\nPour s'ouvrir à de nouveaux styles, c'est plus simple de suivre la recommandation d'un proche, un créateur, un artiste. Un humain.\n\nLe Booster fait entrer ce geste dans l'app : les auditeurs votent pour leurs titres d'artistes féminines préférés, et les plus boostés montent en une.",
@@ -86,69 +149,6 @@
       "w": 1920,
       "h": 1080,
       "poster": "assets/media/Le Booster - 16_9.jpg"
-    }
-  },
-  {
-    "id": "extension-tgi",
-    "chapo": "Chez Australie, chaque étude d'audience partait d'un tableur à nettoyer à la main, et chaque projet demandait une dizaine d'études d'audience. J'ai conçu une extension Google Sheets qui fait ce travail. Un clic, et le tableau brut devient un tableau prêt à analyser.",
-    "contexte": "Une étude d'audience commence toujours de la même façon. On sort les données de Kantar TGI, et on obtient un tableau brut : des lignes et des colonnes en trop, une mise en forme inutilisable, des indicateurs qui ne servent pas l'analyse. Il faut plus d'une heure pour le rendre lisible. Et un projet peut compter jusqu'à dix exports.\n\nPersonne ne remettait ce temps en question. Il faisait partie du métier, comme une étape obligée avant le vrai travail. Mais une heure passée à nettoyer, c'est une heure qui ne va pas à l'analyse.\n\nL'extension retire cette étape : elle nettoie l'export en un clic, directement dans Google Sheets.",
-    "enjeu": "Passer de l'export à l'analyse sans étape manuelle.",
-    "demarche": "Pour construire l'outil, j'ai d'abord observé le nettoyage manuel et je l'ai décrit étape par étape. Cette spécification m'a servi à générer le script Apps Script avec une IA générative.\n\nL'extension supprime d'abord les lignes et les colonnes qui n'apportent rien. Elle remet ensuite le tableau en forme, pour que chaque colonne se lise d'un coup d'œil. Enfin, elle ne garde que les indicateurs utiles à l'analyse. Chaque étape reprend un geste que l'équipe faisait déjà à la main, dans le même ordre. Le résultat ressemble donc à ce qu'elle aurait produit elle-même.\n\nLe cœur du dispositif, c'est ce clic unique. L'outil vit là où l'équipe travaille déjà, dans Google Sheets, sans nouvel outil à apprendre ni fichier à déplacer. Il empêche les variations d'un nettoyage à l'autre : deux planneurs obtiennent le même tableau à partir du même export.\n\nSur un projet, un planneur répète le geste à chaque nouvel export, jusqu'à dix fois par projet. Le gain s'additionne à chaque clic.",
-    "resultat": "L'extension est déployée en janvier 2025 et utilisée par mon équipe sur ses études d'audience.\n\nLe nettoyage d'un export passe d'une heure à un clic. Sur un projet à dix exports, c'est jusqu'à dix heures rendues à l'analyse.",
-    "perimetre": [
-      "Cadrage du besoin",
-      "Spécification fonctionnelle",
-      "Développement Apps Script",
-      "Tests et déploiement"
-    ],
-    "chiffres": [
-      {
-        "n": "1 h",
-        "l": "gagnée par export"
-      },
-      {
-        "n": "10",
-        "l": "exports par projet"
-      }
-    ],
-    "media": {
-      "type": "video",
-      "src": "assets/media/vsl-extension-tgi.mp4",
-      "w": 1920,
-      "h": 1080,
-      "poster": "assets/media/Extension-tgi.jpg"
-    }
-  },
-  {
-    "id": "floorplantoskp",
-    "chapo": "Pour un architecte, passer de son plan 2D à une maquette 3D veut dire retravailler tout le plan dans son logiciel 3D. Le même travail est donc fait deux fois. J’ai conçu floorplantoskp, une extension SketchUp qui lit le plan et construit la maquette à sa place.",
-    "contexte": "Le plan d’un bâtiment naît dans AutoCAD, le logiciel de dessin technique. Pour montrer le projet en volume, l’architecte passe ensuite à SketchUp, le logiciel de maquette 3D.\n\nLes deux logiciels ne se comprennent pas. Un plan AutoCAD n’est qu’un ensemble de traits. SketchUp ne sait pas lequel est un mur, une porte ou une fenêtre.\n\nL’architecte reprend donc chaque mur à la main. Il le monte à la bonne hauteur, puis il découpe chaque porte et chaque fenêtre. Ce travail n’ajoute rien au projet, c'est du temps perdu.",
-    "enjeu": "Passer directement du plan AutoCAD à la maquette SketchUp.",
-    "demarche": "Le vrai défi du projet est de savoir à quoi sert chaque calque. Les calques sont des feuilles de dessin posées les unes sur les autres. Chaque agence les nomment et dessinent à sa façon.\n\nJ’ai confié cette lecture à Mistral, une IA européenne. Elle analyse le nom et le contenu de chaque calque puis propose un rôle pour chacun.\n\nMais une erreur de l’IA donnerait un mur au mauvais endroit. J’ai donc ajouté un écran de confirmation : l’extension montre le plan reconstitué avec des annotations sur les points à vérifier. L’architecte garde la main sur le rendu. \n\nUne fois le plan reconstitué, toute l'extension se joue dans de bons calculs et des programmes Python qui analysent les différentes données des calques (rôle, mesure, emplacement...) pour en faire une structure cohérente et prête à l'emploi.",
-    "resultat": "Une extension qui passe d'un plan 2D en maquette 3D. \n\nAvec des gardes-fous pour la précision du rendu. Une expérience fluide avec le minimum d'intervention humaine. Et un rendu en moins d'une minute.",
-    "perimetre": [
-      "Interview utilisateur",
-      "Cadrage du besoin",
-      "Identifier cas d'usage IA",
-      "Expérience utilisateur",
-      "Développement technique"
-    ],
-    "chiffres": [
-      {
-        "n": "1 min",
-        "l": "rendu maquette 3D"
-      }
-    ],
-    "lien": {
-      "libelle": "Découvrez l'extension",
-      "url": "https://www.floorplantoskp.fr/"
-    },
-    "media": {
-      "type": "video",
-      "src": "assets/media/floorplantoskp.mp4",
-      "w": 1920,
-      "h": 1080,
-      "poster": "assets/media/floorplantoskp.jpg"
     }
   }
 ]
