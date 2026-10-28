@@ -17,7 +17,7 @@
   },
   {
     "id": "scan-avis",
-    "date": "sept. 2025",
+    "date": "sept. 2026",
     "nom": "Scan-avis",
     "client": "Skill Claude",
     "a": "#fff0c2",
@@ -61,6 +61,22 @@
       "w": 1920,
       "h": 1080,
       "alt": "Logo Extension TGI"
+    }
+  },
+  {
+    "id": "floorplantoskp",
+    "date": "oct. 2026",
+    "nom": "floorplantoskp",
+    "client": "Freelance",
+    "a": "#fff0c2",
+    "b": "#fa520f",
+    "c": "#171613",
+    "media": {
+      "type": "image",
+      "src": "assets/media/floorplantoskp.jpg",
+      "w": 1920,
+      "h": 1080,
+      "alt": "Logo floorplantoskp"
     }
   }
 ]

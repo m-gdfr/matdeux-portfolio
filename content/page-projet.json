@@ -118,5 +118,37 @@
       "h": 1080,
       "poster": "assets/media/Extension-tgi.jpg"
     }
+  },
+  {
+    "id": "floorplantoskp",
+    "chapo": "Pour un architecte, passer de son plan 2D à une maquette 3D veut dire retravailler tout le plan dans son logiciel 3D. Le même travail est donc fait deux fois. J’ai conçu floorplantoskp, une extension SketchUp qui lit le plan et construit la maquette à sa place.",
+    "contexte": "Le plan d’un bâtiment naît dans AutoCAD, le logiciel de dessin technique. Pour montrer le projet en volume, l’architecte passe ensuite à SketchUp, le logiciel de maquette 3D.\n\nLes deux logiciels ne se comprennent pas. Un plan AutoCAD n’est qu’un ensemble de traits. SketchUp ne sait pas lequel est un mur, une porte ou une fenêtre.\n\nL’architecte reprend donc chaque mur à la main. Il le monte à la bonne hauteur, puis il découpe chaque porte et chaque fenêtre. Ce travail n’ajoute rien au projet, c'est du temps perdu.",
+    "enjeu": "Passer directement du plan AutoCAD à la maquette SketchUp.",
+    "demarche": "Le vrai défi du projet est de savoir à quoi sert chaque calque. Les calques sont des feuilles de dessin posées les unes sur les autres. Chaque agence les nomment et dessinent à sa façon.\n\nJ’ai confié cette lecture à Mistral, une IA européenne. Elle analyse le nom et le contenu de chaque calque puis propose un rôle pour chacun.\n\nMais une erreur de l’IA donnerait un mur au mauvais endroit. J’ai donc ajouté un écran de confirmation : l’extension montre le plan reconstitué avec des annotations sur les points à vérifier. L’architecte garde la main sur le rendu. \n\nUne fois le plan reconstitué, toute l'extension se joue dans de bons calculs et des programmes Python qui analysent les différentes données des calques (rôle, mesure, emplacement...) pour en faire une structure cohérente et prête à l'emploi.",
+    "resultat": "Une extension qui passe d'un plan 2D en maquette 3D. \n\nAvec des gardes-fous pour la précision du rendu. Une expérience fluide avec le minimum d'intervention humaine. Et un rendu en moins d'une minute.",
+    "perimetre": [
+      "Interview utilisateur",
+      "Cadrage du besoin",
+      "Identifier cas d'usage IA",
+      "Expérience utilisateur",
+      "Développement technique"
+    ],
+    "chiffres": [
+      {
+        "n": "1 min",
+        "l": "rendu maquette 3D"
+      }
+    ],
+    "lien": {
+      "libelle": "Découvrez l'extension",
+      "url": "https://www.floorplantoskp.fr/"
+    },
+    "media": {
+      "type": "video",
+      "src": "assets/media/floorplantoskp.mp4",
+      "w": 1920,
+      "h": 1080,
+      "poster": "assets/media/floorplantoskp.jpg"
+    }
   }
 ]
