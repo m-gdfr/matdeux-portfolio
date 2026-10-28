@@ -1619,8 +1619,8 @@ body[data-pj-drag] { user-select: none; -webkit-user-select: none; cursor: grabb
 /* Sur ce fond, un liseré Ember n'existe pas. */
 .pj-result :focus-visible { outline-color: var(--color-papier); }
 /* Les sorties du bloc Résultat. Deux liens au plus, vers la preuve : le
-   livrable consultable en ligne, et le code qui le produit. Ils ferment la
-   page, ils ne concurrencent pas le texte. */
+   livrable consultable en ligne, et le code qui le produit. Ils ferment le
+   bloc, ils ne concurrencent pas le texte. */
 .pj-sorties { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 .pj-lien {
   display: inline-flex; align-items: center; gap: 8px;
@@ -3110,8 +3110,11 @@ const pageProjet = (() => {
      donnée qui n'est pas dans la page, ce dont vit dist/apercu.html. */
   function rendreDonnee(p, c, piedHtml) {
     sheet.removeAttribute('data-kind');
-    const corps = c.blocs.filter((b) => !b.result);
-    const resultat = c.blocs.find((b) => b.result);
+    /* Le Résultat sort du corps pour prendre sa pleine largeur Ember, à la
+       place qu'il occupe dans les blocs : le corps se coupe autour de lui. */
+    const r = c.blocs.findIndex((b) => b.result);
+    const avant = c.blocs.slice(0, r);
+    const apres = c.blocs.slice(r + 1);
 
     scroll.innerHTML = `
       <div class="pj-topbar"><p class="pj-topbar__t">${p.nom}</p></div>
@@ -3143,8 +3146,9 @@ const pageProjet = (() => {
         <figcaption class="pj-cap">${c.media.cap}</figcaption>
       </figure>
 
-      <div class="pj-body">${corps.map(chapitre).join('')}</div>
-      <div class="pj-result">${chapitre(resultat)}</div>
+      <div class="pj-body">${avant.map(chapitre).join('')}</div>
+      <div class="pj-result">${chapitre(c.blocs[r])}</div>
+      ${apres.length ? `<div class="pj-body">${apres.map(chapitre).join('')}</div>` : ''}
 
       <footer class="pj-foot">
         ${piedHtml}

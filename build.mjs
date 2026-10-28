@@ -605,7 +605,6 @@ pageProjet.forEach((pp) => {
     blocs: [
       { h: 'Contexte', p: paragraphes(pp.contexte) },
       { h: 'Enjeu', callout: escapeHtml(pp.enjeu), perim: escapeHtml((pp.perimetre || []).join(', ')) },
-      { h: 'Démarche', p: paragraphes(pp.demarche) },
       {
         h: 'Résultat',
         result: true,
@@ -620,7 +619,8 @@ pageProjet.forEach((pp) => {
               ...(pp.github.libelle ? { libelle: escapeHtml(pp.github.libelle.trim()) } : {})
             } }
           : {})
-      }
+      },
+      { h: 'Démarche', p: paragraphes(pp.demarche) }
     ]
   };
 });
@@ -762,8 +762,8 @@ const SHIM_APERCU = `<style>
       blocs: [
         { h: 'Contexte', p: paragraphes(pp.contexte) },
         { h: 'Enjeu', callout: texte(pp.enjeu), perim: esc(per) },
-        { h: 'Démarche', p: paragraphes(pp.demarche) },
-        resultat
+        resultat,
+        { h: 'Démarche', p: paragraphes(pp.demarche) }
       ]
     };
     pj.apercu(p, c);
